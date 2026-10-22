@@ -1,0 +1,92 @@
+[project]
+name = "ai-marketing-cloud-backend"
+version = "0.1.0"
+description = "Django API and Celery workers for AI Marketing Cloud"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=1.15.0",
+    "celery>=5.6",
+    "cryptography>=44",
+    "django>=6.1,<6.2",
+    "django-cors-headers>=4.9",
+    "django-environ>=0.14",
+    "django-storages[s3]>=1.14",
+    "django-stubs-ext>=6.1.2",
+    "djangorestframework>=3.18",
+    "drf-spectacular>=0.30",
+    "gunicorn>=26",
+    "httpx>=0.28",
+    "pillow>=11",
+    "psycopg[binary]>=3.3",
+    "redis>=8.1",
+]
+
+[dependency-groups]
+dev = [
+    "django-stubs>=6.1.2",
+    "djangorestframework-stubs>=3.18.1",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pytest-django>=4.14.0",
+    "ruff>=0.17.1",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "DJ", "S", "BLE", "C4", "SIM", "RUF"]
+ignore = [
+    "RUF012",  # Django/DRF class attributes are conventionally mutable.
+    "UP046",  # Generic[T] kept for readability of the AI provider contract.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"conftest.py" = ["S105"]
+# User-facing recommendation copy reads better as whole sentences.
+"apps/analytics/recommendations.py" = ["E501"]
+"**/tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+strict = true
+warn_unused_ignores = true
+exclude = ["migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["environ.*", "celery.*", "drf_spectacular.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["apps.*.tasks", "config.celery"]
+disallow_untyped_decorators = false  # Celery ships without type information.
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "apps.*.tests.*", "conftest"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disable_error_code = [
+    "type-arg", "assignment", "arg-type", "union-attr", "attr-defined", "index", "misc",
+    "operator", "no-untyped-call",
+]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+addopts = "--strict-markers -ra"
+testpaths = ["tests", "apps"]
+python_files = ["test_*.py"]
+markers = [
+    "integration: requires real running services (PostgreSQL/Redis) beyond the test database",
+]
+
+[tool.coverage.run]
+source = ["apps", "config"]
+omit = ["*/migrations/*"]

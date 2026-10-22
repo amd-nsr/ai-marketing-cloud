@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* Design tokens. Components use the Tailwind names (bg-surface, text-muted, ...),
+   never raw colours, so theming stays in one place. */
+:root {
+  --background: #f7f7f8;
+  --surface: #ffffff;
+  --foreground: #18181b;
+  --muted: #5f5f6b;
+  --border: #e4e4e7;
+  --primary: #4338ca;
+  --primary-foreground: #ffffff;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --warning: #a16207;
+  --warning-soft: #fef3c7;
+  --info: #1d4ed8;
+  --info-soft: #dbeafe;
+  --neutral-soft: #f4f4f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0c0c0f;
+    --surface: #16161a;
+    --foreground: #ededf0;
+    --muted: #a1a1aa;
+    --border: #2a2a31;
+    --primary: #818cf8;
+    --primary-foreground: #0c0c0f;
+    --success: #4ade80;
+    --success-soft: #14321f;
+    --danger: #f87171;
+    --danger-soft: #3b1515;
+    --warning: #facc15;
+    --warning-soft: #3a2e0b;
+    --info: #93c5fd;
+    --info-soft: #172554;
+    --neutral-soft: #222228;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

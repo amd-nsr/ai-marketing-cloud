@@ -1,0 +1,56 @@
+[
+  {
+    "id": "restaurant-cafe",
+    "industry": "restaurant",
+    "business": {"name": "Harbour Bean", "description": "Neighbourhood specialty coffee shop with in-house pastries, open 7am-6pm.", "location": "Lisbon, Portugal"},
+    "goals": ["foot_traffic", "retention"],
+    "platforms": ["instagram", "tiktok"],
+    "audiences": [{"name": "Office workers nearby", "pain_points": ["Short lunch breaks"]}],
+    "restricted_claims": ["best coffee in Lisbon", "healthy"]
+  },
+  {
+    "id": "real-estate-agency",
+    "industry": "real_estate",
+    "business": {"name": "Northgate Homes", "description": "Two-agent residential real estate agency focused on family homes.", "location": "Leeds, UK"},
+    "goals": ["leads", "reputation"],
+    "platforms": ["facebook", "instagram"],
+    "audiences": [{"name": "First-time buyers"}, {"name": "Local homeowners considering selling"}],
+    "restricted_claims": ["guaranteed sale", "highest price"]
+  },
+  {
+    "id": "boutique-gym",
+    "industry": "fitness",
+    "business": {"name": "Forge Strength Studio", "description": "Small-group strength classes for adults new to lifting.", "location": "Austin, TX"},
+    "goals": ["leads", "engagement"],
+    "platforms": ["instagram", "tiktok", "facebook"],
+    "audiences": [{"name": "Beginners aged 30-50"}],
+    "restricted_claims": ["lose weight fast", "cure back pain"]
+  },
+  {
+    "id": "accounting-firm",
+    "industry": "professional_services",
+    "business": {"name": "Clearline Accounting", "description": "Bookkeeping and tax filing for freelancers and micro-businesses.", "location": "Dubai, UAE"},
+    "goals": ["leads", "reputation"],
+    "platforms": ["facebook"],
+    "audiences": [{"name": "Freelancers filing their first tax return"}],
+    "restricted_claims": ["avoid all taxes", "guaranteed refund"]
+  },
+  {
+    "id": "ecommerce-candles",
+    "industry": "ecommerce",
+    "business": {"name": "Wick & Ember", "description": "Online shop selling hand-poured soy candles, shipping nationwide.", "location": "Toronto, Canada"},
+    "goals": ["sales", "retention"],
+    "platforms": ["instagram", "tiktok"],
+    "audiences": [{"name": "Gift buyers"}],
+    "restricted_claims": ["non-toxic", "eco-friendly"]
+  },
+  {
+    "id": "hotel-arabic",
+    "industry": "hospitality",
+    "business": {"name": "Dar Al Bahr Boutique Hotel", "description": "Twelve-room seaside boutique hotel with a rooftop restaurant.", "location": "Muscat, Oman", "languages": ["ar", "en"]},
+    "goals": ["sales", "awareness"],
+    "platforms": ["instagram", "facebook"],
+    "audiences": [{"name": "Weekend travellers from the region"}],
+    "restricted_claims": ["five-star", "cheapest"]
+  }
+]

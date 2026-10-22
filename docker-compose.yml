@@ -1,0 +1,98 @@
+# Local development stack. Production uses the `production` Dockerfile targets
+# and managed PostgreSQL/Redis; see docs/development/setup.md.
+#
+#   docker compose up -d postgres redis   # dependencies only (run apps natively)
+#   docker compose up --build             # everything in containers
+
+name: ai-marketing-cloud
+
+x-backend: &backend
+  build:
+    context: ./backend
+    target: development
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: postgres://amc:amc@postgres:5432/amc
+    REDIS_URL: redis://redis:6379/0
+    DJANGO_SETTINGS_MODULE: config.settings.development
+    # The frontend container proxies /api/* to http://backend:8000.
+    DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+  volumes:
+    - ./backend:/app
+    - /app/.venv
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: amc
+      POSTGRES_PASSWORD: amc
+      POSTGRES_DB: amc
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amc -d amc"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-16379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    <<: *backend
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/live/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    <<: *backend
+    command: celery -A config worker --loglevel=INFO --concurrency=2
+
+  beat:
+    <<: *backend
+    # Exactly ONE scheduler per environment (docs/decisions/0005-background-jobs.md).
+    command: celery -A config beat --loglevel=INFO -s /tmp/celerybeat-schedule
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:

@@ -1,0 +1,193 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (lint, types, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: amc
+          POSTGRES_PASSWORD: amc
+          POSTGRES_DB: amc
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U amc -d amc" --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DJANGO_SECRET_KEY: ci-only-insecure-key
+      DATABASE_URL: postgres://amc:amc@localhost:5432/amc
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy .
+      - name: Migrations are up to date
+        run: uv run python manage.py makemigrations --check --dry-run
+      - name: OpenAPI contract is up to date
+        run: |
+          uv run python manage.py spectacular --validate --fail-on-warn --file "$RUNNER_TEMP/openapi.yaml"
+          diff -u ../docs/api/openapi.yaml "$RUNNER_TEMP/openapi.yaml"
+      - run: uv run pytest --cov --cov-report=term-missing:skip-covered
+
+  frontend:
+    name: Frontend (lint, types, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  dependency-audit:
+    name: Dependency audit (known vulnerabilities)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: Python dependencies (pip-audit)
+        working-directory: backend
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit --strict -r "$RUNNER_TEMP/requirements.txt"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: JavaScript dependencies (npm audit)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=moderate
+
+  e2e:
+    name: End-to-end pilot journey (mock AI, simulation accounts)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: amc
+          POSTGRES_PASSWORD: amc
+          POSTGRES_DB: amc
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U amc -d amc" --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DJANGO_SECRET_KEY: ci-only-insecure-key
+      DATABASE_URL: postgres://amc:amc@localhost:5432/amc
+      REDIS_URL: redis://localhost:6379/0
+      AI_PROVIDER: mock
+      SOCIAL_MOCK_ENABLED: "true"
+      LOG_FORMAT: console
+      BACKEND_INTERNAL_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Backend, worker and scheduler
+        working-directory: backend
+        run: |
+          uv sync --frozen
+          uv run python manage.py migrate --noinput
+          nohup uv run python manage.py runserver 8000 > "$RUNNER_TEMP/backend.log" 2>&1 &
+          nohup uv run celery -A config worker --loglevel=INFO > "$RUNNER_TEMP/worker.log" 2>&1 &
+          nohup uv run celery -A config beat --loglevel=INFO -s "$RUNNER_TEMP/beat" > "$RUNNER_TEMP/beat.log" 2>&1 &
+      - name: Frontend (production build)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          cp -r .next/static .next/standalone/.next/
+          cp -r public .next/standalone/
+          (cd .next/standalone && PORT=3000 HOSTNAME=127.0.0.1 nohup node server.js > "$RUNNER_TEMP/frontend.log" 2>&1 &)
+          npx playwright install --with-deps chromium
+      - name: Wait for the stack
+        run: |
+          timeout 120 bash -c 'until curl -sf localhost:8000/api/v1/health/ready/ && curl -sf -o /dev/null localhost:3000/login; do sleep 2; done'
+          timeout 120 bash -c 'until curl -sf localhost:8000/api/v1/health/background/; do sleep 5; done'
+      - name: Pilot journey
+        working-directory: frontend
+        run: npm run e2e
+      - name: Upload report and logs
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: e2e-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            ${{ runner.temp }}/*.log
+
+  images:
+    name: Production images build
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          target: production
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - name: Frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: frontend
+          target: production
+          push: false
+          build-args: BACKEND_INTERNAL_URL=http://backend:8000
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend

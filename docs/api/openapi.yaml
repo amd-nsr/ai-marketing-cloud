@@ -1,0 +1,6930 @@
+openapi: 3.0.3
+info:
+  title: AI Marketing Cloud API
+  version: 0.1.0
+  description: HTTP API consumed by the AI Marketing Cloud frontend.
+paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      description: Sets the CSRF cookie. The frontend calls this before its first
+        unsafe request.
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+    patch:
+      operationId: auth_me_partial_update
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/auth/password/change/:
+    post:
+      operationId: auth_password_change_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/password/reset/:
+    post:
+      operationId: auth_password_reset_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+          description: ''
+  /api/v1/auth/password/reset/confirm/:
+    post:
+      operationId: auth_password_reset_confirm_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/v1/auth/register/:
+    post:
+      operationId: auth_register_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/health/background/:
+    get:
+      operationId: health_background_retrieve
+      description: Is background processing alive? Exposes only status and heartbeat
+        age.
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackgroundStatus'
+          description: ''
+  /api/v1/health/live/:
+    get:
+      operationId: health_live_retrieve
+      description: The process is up and serving requests. Does not touch dependencies.
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Liveness'
+          description: ''
+  /api/v1/health/ready/:
+    get:
+      operationId: health_ready_retrieve
+      description: 'The process can serve real traffic: PostgreSQL and Redis are reachable.'
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Readiness'
+          description: ''
+        '503':
+          description: No response body
+  /api/v1/orgs/:
+    get:
+      operationId: orgs_list
+      description: Organizations the caller belongs to; POST creates one with the
+        caller as owner.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrganizationList'
+          description: ''
+    post:
+      operationId: orgs_create
+      description: Organizations the caller belongs to; POST creates one with the
+        caller as owner.
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Organization'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Organization'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+          description: ''
+  /api/v1/orgs/{org_id}/:
+    get:
+      operationId: orgs_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+          description: ''
+    patch:
+      operationId: orgs_partial_update
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganization'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganization'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+          description: ''
+  /api/v1/orgs/{org_id}/ai/runs/:
+    get:
+      operationId: orgs_ai_runs_list
+      description: Status of asynchronous AI jobs (clients poll the detail endpoint).
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAIWorkflowRunList'
+          description: ''
+  /api/v1/orgs/{org_id}/ai/runs/{id}/:
+    get:
+      operationId: orgs_ai_runs_retrieve
+      description: Status of asynchronous AI jobs (clients poll the detail endpoint).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ai workflow run.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
+  /api/v1/orgs/{org_id}/analytics/overview/:
+    get:
+      operationId: orgs_analytics_overview_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Look-back window in days (1-365, default 30).
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/orgs/{org_id}/analytics/posts/:
+    get:
+      operationId: orgs_analytics_posts_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Look-back window in days (1-365, default 30).
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: platform
+        schema:
+          type: string
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/orgs/{org_id}/analytics/refresh/:
+    post:
+      operationId: orgs_analytics_refresh_create
+      description: Fetch fresh metrics now (per-post cooldown applies).
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsRefreshed'
+          description: ''
+  /api/v1/orgs/{org_id}/analytics/trend/:
+    get:
+      operationId: orgs_analytics_trend_retrieve
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Look-back window in days (1-365, default 30).
+      - in: query
+        name: metric
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: platform
+        schema:
+          type: string
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/orgs/{org_id}/approvals/:
+    get:
+      operationId: orgs_approvals_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedApprovalList'
+          description: ''
+  /api/v1/orgs/{org_id}/approvals/{id}/:
+    get:
+      operationId: orgs_approvals_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this approval.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+          description: ''
+  /api/v1/orgs/{org_id}/approvals/{id}/approve/:
+    post:
+      operationId: orgs_approvals_approve_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this approval.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Decision'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Decision'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+          description: ''
+  /api/v1/orgs/{org_id}/approvals/{id}/cancel/:
+    post:
+      operationId: orgs_approvals_cancel_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this approval.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+          description: ''
+  /api/v1/orgs/{org_id}/approvals/{id}/reject/:
+    post:
+      operationId: orgs_approvals_reject_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this approval.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Decision'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Decision'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+          description: ''
+  /api/v1/orgs/{org_id}/audit-events/:
+    get:
+      operationId: orgs_audit_events_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditEventList'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/actions/:
+    get:
+      operationId: orgs_automation_actions_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActionList'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/actions/{id}/:
+    get:
+      operationId: orgs_automation_actions_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this automation action.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/actions/{id}/approve/:
+    post:
+      operationId: orgs_automation_actions_approve_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this automation action.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/actions/{id}/cancel/:
+    post:
+      operationId: orgs_automation_actions_cancel_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this automation action.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/actions/{id}/reject/:
+    post:
+      operationId: orgs_automation_actions_reject_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this automation action.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Action'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/cancel-pending/:
+    post:
+      operationId: orgs_automation_cancel_pending_create
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomationCounts'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/pause/:
+    post:
+      operationId: orgs_automation_pause_create
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/policy/:
+    get:
+      operationId: orgs_automation_policy_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+          description: ''
+    patch:
+      operationId: orgs_automation_policy_partial_update
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPolicy'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPolicy'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/resume/:
+    post:
+      operationId: orgs_automation_resume_create
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+          description: ''
+  /api/v1/orgs/{org_id}/automation/run-now/:
+    post:
+      operationId: orgs_automation_run_now_create
+      description: Run the automation workflows now instead of waiting for the scheduler.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomationRun'
+          description: ''
+  /api/v1/orgs/{org_id}/brand/assets/:
+    get:
+      operationId: orgs_brand_assets_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBrandAssetList'
+          description: ''
+    post:
+      operationId: orgs_brand_assets_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BrandAssetUpload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandAsset'
+          description: ''
+  /api/v1/orgs/{org_id}/brand/assets/{id}/:
+    get:
+      operationId: orgs_brand_assets_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this brand asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandAsset'
+          description: ''
+    delete:
+      operationId: orgs_brand_assets_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this brand asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/brand/assets/{id}/file/:
+    get:
+      operationId: orgs_brand_assets_file_retrieve
+      description: Stream the file after the membership check, or redirect to a signed
+        URL (S3).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this brand asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '302':
+          description: No response body
+  /api/v1/orgs/{org_id}/brand/audiences/:
+    get:
+      operationId: orgs_brand_audiences_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTargetAudienceList'
+          description: ''
+    post:
+      operationId: orgs_brand_audiences_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TargetAudience'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TargetAudience'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetAudience'
+          description: ''
+  /api/v1/orgs/{org_id}/brand/audiences/{id}/:
+    get:
+      operationId: orgs_brand_audiences_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this target audience.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetAudience'
+          description: ''
+    put:
+      operationId: orgs_brand_audiences_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this target audience.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TargetAudience'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TargetAudience'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetAudience'
+          description: ''
+    patch:
+      operationId: orgs_brand_audiences_partial_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this target audience.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTargetAudience'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTargetAudience'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetAudience'
+          description: ''
+    delete:
+      operationId: orgs_brand_audiences_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this target audience.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/brand/guidelines/:
+    get:
+      operationId: orgs_brand_guidelines_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandGuideline'
+          description: ''
+    patch:
+      operationId: orgs_brand_guidelines_partial_update
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandGuideline'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBrandGuideline'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrandGuideline'
+          description: ''
+  /api/v1/orgs/{org_id}/business-context/:
+    get:
+      operationId: orgs_business_context_retrieve
+      description: Exactly what AI workflows receive about this business, for user
+        inspection.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/orgs/{org_id}/business-profile/:
+    get:
+      operationId: orgs_business_profile_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessProfile'
+          description: ''
+    patch:
+      operationId: orgs_business_profile_partial_update
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBusinessProfile'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBusinessProfile'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessProfile'
+          description: ''
+  /api/v1/orgs/{org_id}/campaigns/:
+    get:
+      operationId: orgs_campaigns_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCampaignList'
+          description: ''
+    post:
+      operationId: orgs_campaigns_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+  /api/v1/orgs/{org_id}/campaigns/{id}/:
+    get:
+      operationId: orgs_campaigns_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+    put:
+      operationId: orgs_campaigns_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Campaign'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+    patch:
+      operationId: orgs_campaigns_partial_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCampaign'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCampaign'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+          description: ''
+    delete:
+      operationId: orgs_campaigns_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/content/:
+    get:
+      operationId: orgs_content_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContentItemList'
+          description: ''
+    post:
+      operationId: orgs_content_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentItemCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContentItemCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentItem'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/:
+    get:
+      operationId: orgs_content_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentItem'
+          description: ''
+    put:
+      operationId: orgs_content_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContentItem'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentItem'
+          description: ''
+    patch:
+      operationId: orgs_content_partial_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContentItem'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContentItem'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentItem'
+          description: ''
+    delete:
+      operationId: orgs_content_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/content/{id}/archive/:
+    post:
+      operationId: orgs_content_archive_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentItem'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/assets/:
+    get:
+      operationId: orgs_content_assets_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContentAssetList'
+          description: ''
+    post:
+      operationId: orgs_content_assets_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssetUpload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentAsset'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/assets/{asset_id}/:
+    delete:
+      operationId: orgs_content_assets_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: asset_id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/content/{id}/assets/{asset_id}/file/:
+    get:
+      operationId: orgs_content_assets_file_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: asset_id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '302':
+          description: No response body
+  /api/v1/orgs/{org_id}/content/{id}/regenerate/:
+    post:
+      operationId: orgs_content_regenerate_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Regenerate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Regenerate'
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/submit/:
+    post:
+      operationId: orgs_content_submit_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Submit'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Submit'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/unarchive/:
+    post:
+      operationId: orgs_content_unarchive_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentItem'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/versions/:
+    get:
+      operationId: orgs_content_versions_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContentVersionList'
+          description: ''
+    post:
+      operationId: orgs_content_versions_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VersionFields'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VersionFields'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentVersion'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/versions/{number}/restore/:
+    post:
+      operationId: orgs_content_versions_restore_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: number
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentVersion'
+          description: ''
+  /api/v1/orgs/{org_id}/content/generate/:
+    post:
+      operationId: orgs_content_generate_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateContent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GenerateContent'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
+  /api/v1/orgs/{org_id}/invitations/:
+    get:
+      operationId: orgs_invitations_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvitationList'
+          description: ''
+    post:
+      operationId: orgs_invitations_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Invitation'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+          description: ''
+  /api/v1/orgs/{org_id}/invitations/{id}/:
+    delete:
+      operationId: orgs_invitations_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this invitation.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/marketing-plans/:
+    get:
+      operationId: orgs_marketing_plans_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMarketingPlanListList'
+          description: ''
+  /api/v1/orgs/{org_id}/marketing-plans/{id}/:
+    get:
+      operationId: orgs_marketing_plans_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this marketing plan.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketingPlan'
+          description: ''
+  /api/v1/orgs/{org_id}/marketing-plans/{id}/activate/:
+    post:
+      operationId: orgs_marketing_plans_activate_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this marketing plan.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketingPlan'
+          description: ''
+  /api/v1/orgs/{org_id}/marketing-plans/{id}/revise/:
+    post:
+      operationId: orgs_marketing_plans_revise_create
+      description: Save edited content as a new version (history is never overwritten).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this marketing plan.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevisePlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RevisePlan'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketingPlan'
+          description: ''
+  /api/v1/orgs/{org_id}/marketing-plans/generate/:
+    post:
+      operationId: orgs_marketing_plans_generate_create
+      description: Start asynchronous plan generation; poll the returned AI run.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeneratePlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GeneratePlan'
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
+  /api/v1/orgs/{org_id}/me/:
+    get:
+      operationId: orgs_me_retrieve
+      description: The caller's role and permissions in this organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipSummary'
+          description: ''
+  /api/v1/orgs/{org_id}/members/:
+    get:
+      operationId: orgs_members_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMemberList'
+          description: ''
+  /api/v1/orgs/{org_id}/members/{id}/:
+    patch:
+      operationId: orgs_members_partial_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this membership.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRoleUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRoleUpdate'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+    delete:
+      operationId: orgs_members_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this membership.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/notifications/:
+    get:
+      operationId: orgs_notifications_list
+      description: The caller's own notifications in this organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/v1/orgs/{org_id}/notifications/mark-read/:
+    post:
+      operationId: orgs_notifications_mark_read_create
+      description: The caller's own notifications in this organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkedRead'
+          description: ''
+  /api/v1/orgs/{org_id}/onboarding/:
+    get:
+      operationId: orgs_onboarding_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatus'
+          description: ''
+    post:
+      operationId: orgs_onboarding_create
+      description: Mark onboarding complete (all required steps must be done).
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatus'
+          description: ''
+  /api/v1/orgs/{org_id}/operations/:
+    get:
+      operationId: orgs_operations_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - operations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationsOverview'
+          description: ''
+  /api/v1/orgs/{org_id}/publishing/jobs/:
+    get:
+      operationId: orgs_publishing_jobs_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPublishingJobList'
+          description: ''
+    post:
+      operationId: orgs_publishing_jobs_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: Repeating a request with the same key returns the original job.
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishingJob'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishingJob'
+          description: ''
+  /api/v1/orgs/{org_id}/publishing/jobs/{id}/:
+    get:
+      operationId: orgs_publishing_jobs_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this publishing job.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishingJob'
+          description: ''
+  /api/v1/orgs/{org_id}/publishing/jobs/{id}/cancel/:
+    post:
+      operationId: orgs_publishing_jobs_cancel_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this publishing job.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishingJob'
+          description: ''
+  /api/v1/orgs/{org_id}/publishing/jobs/{id}/retry/:
+    post:
+      operationId: orgs_publishing_jobs_retry_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this publishing job.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Retry'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Retry'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishingJob'
+          description: ''
+  /api/v1/orgs/{org_id}/publishing/posts/:
+    get:
+      operationId: orgs_publishing_posts_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPublishedPostList'
+          description: ''
+  /api/v1/orgs/{org_id}/publishing/posts/{id}/:
+    get:
+      operationId: orgs_publishing_posts_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this published post.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishedPost'
+          description: ''
+  /api/v1/orgs/{org_id}/recommendations/:
+    get:
+      operationId: orgs_recommendations_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRecommendationList'
+          description: ''
+  /api/v1/orgs/{org_id}/recommendations/{id}/:
+    get:
+      operationId: orgs_recommendations_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this marketing recommendation.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recommendation'
+          description: ''
+  /api/v1/orgs/{org_id}/recommendations/{id}/accept/:
+    post:
+      operationId: orgs_recommendations_accept_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this marketing recommendation.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recommendation'
+          description: ''
+  /api/v1/orgs/{org_id}/recommendations/{id}/dismiss/:
+    post:
+      operationId: orgs_recommendations_dismiss_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this marketing recommendation.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recommendation'
+          description: ''
+  /api/v1/orgs/{org_id}/recommendations/refresh/:
+    post:
+      operationId: orgs_recommendations_refresh_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationsRefreshed'
+          description: ''
+  /api/v1/orgs/{org_id}/social/accounts/:
+    get:
+      operationId: orgs_social_accounts_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSocialAccountList'
+          description: ''
+  /api/v1/orgs/{org_id}/social/accounts/{id}/:
+    get:
+      operationId: orgs_social_accounts_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this social account.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialAccount'
+          description: ''
+    delete:
+      operationId: orgs_social_accounts_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this social account.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/social/accounts/connect/:
+    post:
+      operationId: orgs_social_accounts_connect_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Connect'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Connect'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectStart'
+          description: ''
+  /api/v1/orgs/{org_id}/social/accounts/platforms/:
+    get:
+      operationId: orgs_social_accounts_platforms_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlatformInfoList'
+          description: ''
+  /api/v1/orgs/{org_id}/usage/:
+    get:
+      operationId: orgs_usage_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageSummary'
+          description: ''
+  /api/v1/orgs/invitations/accept/:
+    post:
+      operationId: orgs_invitations_accept_create
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitation'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembershipSummary'
+          description: ''
+  /api/v1/reference-data/:
+    get:
+      operationId: reference_data_retrieve
+      description: Industry presets, goal and platform vocabularies used by onboarding.
+      tags:
+      - reference-data
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReferenceData'
+          description: ''
+  /api/v1/social/oauth/callback/:
+    post:
+      operationId: social_oauth_callback_create
+      description: Completes an authorization started by the same signed-in user.
+      tags:
+      - social
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Callback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Callback'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectResult'
+          description: ''
+components:
+  schemas:
+    AIOps:
+      type: object
+      properties:
+        queued:
+          type: integer
+        running:
+          type: integer
+        succeeded_recent:
+          type: integer
+        failed_recent:
+          type: integer
+        recent_failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunFailure'
+      required:
+      - failed_recent
+      - queued
+      - recent_failures
+      - running
+      - succeeded_recent
+    AIWorkflowRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        workflow:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AIWorkflowRunStatusEnum'
+          readOnly: true
+        result_type:
+          type: string
+          readOnly: true
+        result_id:
+          type: string
+          readOnly: true
+        output:
+          readOnly: true
+        provider:
+          type: string
+          readOnly: true
+        model:
+          type: string
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        attempts:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - attempts
+      - created_at
+      - error_code
+      - error_message
+      - finished_at
+      - id
+      - is_mock
+      - model
+      - output
+      - provider
+      - result_id
+      - result_type
+      - started_at
+      - status
+      - workflow
+    AIWorkflowRunStatusEnum:
+      enum:
+      - queued
+      - running
+      - succeeded
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `queued` - Queued
+        * `running` - Running
+        * `succeeded` - Succeeded
+        * `failed` - Failed
+        * `cancelled` - Cancelled
+    AcceptInvitation:
+      type: object
+      properties:
+        token:
+          type: string
+          maxLength: 64
+      required:
+      - token
+    AccountAttention:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        platform:
+          type: string
+        status:
+          type: string
+      required:
+      - id
+      - name
+      - platform
+      - status
+    Action:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        action_type:
+          allOf:
+          - $ref: '#/components/schemas/AutomationActionTypeEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AutomationActionStatusEnum'
+          readOnly: true
+        workflow:
+          type: string
+          readOnly: true
+        initiated_by:
+          type: string
+          readOnly: true
+        content_item:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        content_title:
+          type: string
+          readOnly: true
+        content_platform:
+          type: string
+          readOnly: true
+        content_caption:
+          type: string
+          readOnly: true
+        social_account:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        account_name:
+          type: string
+          readOnly: true
+        account_is_mock:
+          type: boolean
+          readOnly: true
+        scheduled_for:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        payload:
+          readOnly: true
+        decision:
+          type: string
+          readOnly: true
+        decision_reasons:
+          readOnly: true
+        policy_version:
+          type: integer
+          readOnly: true
+        mode_at_decision:
+          type: string
+          readOnly: true
+        attempts:
+          type: integer
+          readOnly: true
+        error:
+          type: string
+          readOnly: true
+        publishing_job:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        publishing_job_status:
+          type: string
+          readOnly: true
+        ai_run:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        approved_by_email:
+          type: string
+          format: email
+          readOnly: true
+        approved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        executed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - account_is_mock
+      - account_name
+      - action_type
+      - ai_run
+      - approved_at
+      - approved_by_email
+      - attempts
+      - content_caption
+      - content_item
+      - content_platform
+      - content_title
+      - created_at
+      - decision
+      - decision_reasons
+      - error
+      - executed_at
+      - id
+      - initiated_by
+      - mode_at_decision
+      - payload
+      - policy_version
+      - publishing_job
+      - publishing_job_status
+      - scheduled_for
+      - social_account
+      - status
+      - workflow
+    ActorTypeEnum:
+      enum:
+      - user
+      - system
+      type: string
+      description: |-
+        * `user` - User
+        * `system` - System
+    Approval:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        item:
+          type: string
+          format: uuid
+          readOnly: true
+        item_title:
+          type: string
+          readOnly: true
+        item_platform:
+          type: string
+          readOnly: true
+        item_format:
+          type: string
+          readOnly: true
+        item_status:
+          type: string
+          readOnly: true
+        version:
+          allOf:
+          - $ref: '#/components/schemas/ContentVersion'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ApprovalStatusEnum'
+          readOnly: true
+          default: pending
+        request_note:
+          type: string
+          readOnly: true
+        requested_by_email:
+          type: string
+          format: email
+          readOnly: true
+        decided_by_email:
+          type: string
+          format: email
+          readOnly: true
+        decided_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        comment:
+          type: string
+          readOnly: true
+        is_current_version:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - comment
+      - created_at
+      - decided_at
+      - decided_by_email
+      - id
+      - is_current_version
+      - item
+      - item_format
+      - item_platform
+      - item_status
+      - item_title
+      - request_note
+      - requested_by_email
+      - status
+      - version
+    ApprovalStatusEnum:
+      enum:
+      - pending
+      - approved
+      - rejected
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `approved` - Approved
+        * `rejected` - Changes requested
+        * `cancelled` - Cancelled
+    AssetUpload:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+      required:
+      - file
+    Attempt:
+      type: object
+      properties:
+        number:
+          type: integer
+          readOnly: true
+        outcome:
+          allOf:
+          - $ref: '#/components/schemas/PublishingAttemptOutcomeEnum'
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        error_code:
+          type: string
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+      required:
+      - error_code
+      - error_message
+      - finished_at
+      - number
+      - outcome
+      - started_at
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        actor_type:
+          allOf:
+          - $ref: '#/components/schemas/ActorTypeEnum'
+          readOnly: true
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+        target_type:
+          type: string
+          readOnly: true
+        target_id:
+          type: string
+          readOnly: true
+        metadata:
+          readOnly: true
+        request_id:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor_email
+      - actor_type
+      - created_at
+      - id
+      - metadata
+      - request_id
+      - target_id
+      - target_type
+    AuthorshipSourceEnum:
+      enum:
+      - manual
+      - ai
+      - ai_edited
+      type: string
+      description: |-
+        * `manual` - Written by the team
+        * `ai` - AI-generated
+        * `ai_edited` - AI-generated, edited
+    AutomationActionStatusEnum:
+      enum:
+      - awaiting_approval
+      - deferred
+      - approved
+      - executing
+      - succeeded
+      - failed
+      - rejected
+      - cancelled
+      type: string
+      description: |-
+        * `awaiting_approval` - Awaiting approval
+        * `deferred` - Deferred
+        * `approved` - Approved
+        * `executing` - Executing
+        * `succeeded` - Done
+        * `failed` - Failed
+        * `rejected` - Rejected
+        * `cancelled` - Cancelled
+    AutomationActionTypeEnum:
+      enum:
+      - publish_content
+      - generate_draft
+      type: string
+      description: |-
+        * `publish_content` - Publish content
+        * `generate_draft` - Generate a draft
+    AutomationCounts:
+      type: object
+      properties:
+        actions:
+          type: integer
+        jobs:
+          type: integer
+      required:
+      - actions
+      - jobs
+    AutomationOps:
+      type: object
+      properties:
+        mode:
+          type: string
+        paused:
+          type: boolean
+        awaiting_approval:
+          type: integer
+        deferred:
+          type: integer
+        failed_recent:
+          type: integer
+      required:
+      - awaiting_approval
+      - deferred
+      - failed_recent
+      - mode
+      - paused
+    AutomationRun:
+      type: object
+      properties:
+        proposed:
+          type: integer
+      required:
+      - proposed
+    AutonomyModeEnum:
+      enum:
+      - manual
+      - semi_automatic
+      - automatic
+      type: string
+      description: |-
+        * `manual` - Manual
+        * `semi_automatic` - Semi-automatic
+        * `automatic` - Automatic
+    BackgroundStatus:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/BackgroundStatusStatusEnum'
+        last_heartbeat_at:
+          type: string
+          format: date-time
+          nullable: true
+        age_seconds:
+          type: integer
+          nullable: true
+      required:
+      - age_seconds
+      - last_heartbeat_at
+      - status
+    BackgroundStatusStatusEnum:
+      enum:
+      - ok
+      - stale
+      - unknown
+      type: string
+      description: |-
+        * `ok` - ok
+        * `stale` - stale
+        * `unknown` - unknown
+    BlankEnum:
+      enum:
+      - ''
+    BrandAsset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/BrandAssetKindEnum'
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        original_filename:
+          type: string
+          readOnly: true
+        content_type:
+          type: string
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        width:
+          type: integer
+          readOnly: true
+          nullable: true
+        height:
+          type: integer
+          readOnly: true
+          nullable: true
+        file_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content_type
+      - created_at
+      - file_url
+      - height
+      - id
+      - kind
+      - original_filename
+      - size_bytes
+      - title
+      - width
+    BrandAssetKindEnum:
+      enum:
+      - logo
+      - image
+      - other
+      type: string
+      description: |-
+        * `logo` - Logo
+        * `image` - Approved image
+        * `other` - Other
+    BrandAssetUpload:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/BrandAssetKindEnum'
+          default: image
+        title:
+          type: string
+          default: ''
+          maxLength: 160
+      required:
+      - file
+    BrandGuideline:
+      type: object
+      properties:
+        tone:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 8
+        voice_description:
+          type: string
+          maxLength: 2000
+        do_list:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 20
+        dont_list:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 20
+        restricted_claims:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 30
+        example_posts:
+          type: array
+          items:
+            type: string
+            maxLength: 2200
+          maxItems: 10
+        colors:
+          type: array
+          items:
+            type: string
+            maxLength: 7
+          maxItems: 10
+        fonts:
+          type: array
+          items:
+            type: string
+            maxLength: 80
+          maxItems: 5
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+    BusinessProfile:
+      type: object
+      properties:
+        business_name:
+          type: string
+          maxLength: 160
+        industry:
+          oneOf:
+          - $ref: '#/components/schemas/IndustryEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        website:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        description:
+          type: string
+          maxLength: 4000
+        products_services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductService'
+        location:
+          type: string
+          maxLength: 200
+        service_area:
+          type: string
+          maxLength: 300
+        goals:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10
+        preferred_platforms:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformEnum'
+          maxItems: 3
+        languages:
+          type: array
+          items:
+            type: string
+            maxLength: 10
+          maxItems: 5
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - onboarding_completed_at
+      - updated_at
+    Callback:
+      type: object
+      properties:
+        state:
+          type: string
+          maxLength: 64
+        code:
+          type: string
+          maxLength: 2000
+      required:
+      - code
+      - state
+    Campaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        objective:
+          type: string
+          maxLength: 300
+        description:
+          type: string
+          maxLength: 4000
+        status:
+          $ref: '#/components/schemas/CampaignStatusEnum'
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        platforms:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformEnum'
+          maxItems: 3
+        key_messages:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 10
+        plan:
+          type: string
+          format: uuid
+          nullable: true
+        content_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content_count
+      - created_at
+      - id
+      - name
+      - updated_at
+    CampaignStatusEnum:
+      enum:
+      - planned
+      - active
+      - completed
+      - archived
+      type: string
+      description: |-
+        * `planned` - Planned
+        * `active` - Active
+        * `completed` - Completed
+        * `archived` - Archived
+    Connect:
+      type: object
+      properties:
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+        simulation:
+          type: boolean
+          default: false
+      required:
+      - platform
+    ConnectResult:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialAccount'
+      required:
+      - accounts
+      - organization_id
+    ConnectStart:
+      type: object
+      properties:
+        authorization_url:
+          type: string
+      required:
+      - authorization_url
+    ContentAsset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        original_filename:
+          type: string
+          readOnly: true
+        content_type:
+          type: string
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        width:
+          type: integer
+          readOnly: true
+          nullable: true
+        height:
+          type: integer
+          readOnly: true
+          nullable: true
+        position:
+          type: integer
+          readOnly: true
+        file_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content_type
+      - created_at
+      - file_url
+      - height
+      - id
+      - original_filename
+      - position
+      - size_bytes
+      - width
+    ContentItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          readOnly: true
+        format:
+          allOf:
+          - $ref: '#/components/schemas/FormatEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ContentStatusEnum'
+          readOnly: true
+        campaign:
+          type: string
+          format: uuid
+          nullable: true
+        campaign_name:
+          type: string
+          readOnly: true
+        brief:
+          type: string
+          maxLength: 2000
+        planned_for:
+          type: string
+          format: date-time
+          nullable: true
+        current_version:
+          allOf:
+          - $ref: '#/components/schemas/ContentVersion'
+          readOnly: true
+        version_count:
+          type: integer
+          readOnly: true
+        asset_count:
+          type: integer
+          readOnly: true
+        pending_approval_id:
+          type: string
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - asset_count
+      - campaign_name
+      - created_at
+      - current_version
+      - format
+      - id
+      - pending_approval_id
+      - platform
+      - status
+      - title
+      - updated_at
+      - version_count
+    ContentItemCreate:
+      type: object
+      description: Editable text fields of a content version (all optional; omitted
+        = unchanged).
+      properties:
+        headline:
+          type: string
+          maxLength: 200
+        hook:
+          type: string
+          maxLength: 300
+        caption:
+          type: string
+          maxLength: 10000
+        cta:
+          type: string
+          maxLength: 200
+        hashtags:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          maxItems: 60
+        script:
+          type: string
+          maxLength: 10000
+        slides:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slide'
+        creative_brief:
+          type: string
+          maxLength: 4000
+        alt_text:
+          type: string
+          maxLength: 1000
+        title:
+          type: string
+          maxLength: 200
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+        format:
+          allOf:
+          - $ref: '#/components/schemas/FormatEnum'
+          default: post
+        campaign:
+          type: string
+          format: uuid
+          nullable: true
+        brief:
+          type: string
+          default: ''
+          maxLength: 2000
+        planned_for:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - platform
+      - title
+    ContentStatusEnum:
+      enum:
+      - draft
+      - in_review
+      - changes_requested
+      - approved
+      - scheduled
+      - published
+      - archived
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `in_review` - Awaiting approval
+        * `changes_requested` - Changes requested
+        * `approved` - Approved
+        * `scheduled` - Scheduled
+        * `published` - Published
+        * `archived` - Archived
+    ContentVersion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        number:
+          type: integer
+          readOnly: true
+        headline:
+          type: string
+          readOnly: true
+        hook:
+          type: string
+          readOnly: true
+        caption:
+          type: string
+          readOnly: true
+        cta:
+          type: string
+          readOnly: true
+        hashtags:
+          readOnly: true
+        script:
+          type: string
+          readOnly: true
+        slides:
+          readOnly: true
+        creative_brief:
+          type: string
+          readOnly: true
+        alt_text:
+          type: string
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/AuthorshipSourceEnum'
+          readOnly: true
+        ai_model:
+          type: string
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        checks:
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+        created_by_email:
+          type: string
+          format: email
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ai_model
+      - alt_text
+      - caption
+      - checks
+      - created_at
+      - created_by_email
+      - creative_brief
+      - cta
+      - hashtags
+      - headline
+      - hook
+      - id
+      - is_mock
+      - note
+      - number
+      - script
+      - slides
+      - source
+    Decision:
+      type: object
+      properties:
+        comment:
+          type: string
+          default: ''
+          maxLength: 2000
+    Evidence:
+      type: object
+      properties:
+        description:
+          type: string
+          readOnly: true
+        platform:
+          type: string
+          readOnly: true
+        metric_key:
+          type: string
+          readOnly: true
+        value:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,4})?$
+          readOnly: true
+          nullable: true
+        baseline:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,4})?$
+          readOnly: true
+          nullable: true
+        sample_size:
+          type: integer
+          readOnly: true
+          nullable: true
+        published_post:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+      required:
+      - baseline
+      - description
+      - metric_key
+      - platform
+      - published_post
+      - sample_size
+      - value
+    FormatEnum:
+      enum:
+      - post
+      - carousel
+      - reel
+      - story
+      - short_video
+      type: string
+      description: |-
+        * `post` - Post
+        * `carousel` - Carousel
+        * `reel` - Reel
+        * `story` - Story
+        * `short_video` - Short video
+    GenerateContent:
+      type: object
+      properties:
+        brief:
+          type: string
+          maxLength: 2000
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Target'
+        campaign:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - brief
+      - targets
+    GeneratePlan:
+      type: object
+      properties:
+        horizon_weeks:
+          type: integer
+          maximum: 12
+          minimum: 1
+          default: 4
+        instructions:
+          type: string
+          default: ''
+          maxLength: 2000
+    HealthCheck:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        latency_ms:
+          type: number
+          format: double
+        error:
+          type: string
+          nullable: true
+      required:
+      - error
+      - latency_ms
+      - ok
+    IndustryEnum:
+      enum:
+      - restaurant
+      - retail
+      - ecommerce
+      - professional_services
+      - real_estate
+      - fitness
+      - hospitality
+      - beauty
+      - education
+      - other
+      type: string
+      description: |-
+        * `restaurant` - Restaurant, café, or food service
+        * `retail` - Retail store
+        * `ecommerce` - E-commerce
+        * `professional_services` - Professional services (consulting, legal, accounting, agencies)
+        * `real_estate` - Real estate
+        * `fitness` - Fitness, gym, or wellness
+        * `hospitality` - Hospitality and travel (hotels, tours, venues)
+        * `beauty` - Beauty and personal care (salons, spas, clinics)
+        * `education` - Education and training
+        * `other` - Other
+    IndustryPreset:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        suggested_goals:
+          type: array
+          items:
+            type: string
+        suggested_platforms:
+          type: array
+          items:
+            type: string
+        example_audiences:
+          type: array
+          items:
+            type: string
+        content_themes:
+          type: array
+          items:
+            type: string
+        compliance_notes:
+          type: array
+          items:
+            type: string
+      required:
+      - compliance_notes
+      - content_themes
+      - example_audiences
+      - key
+      - label
+      - suggested_goals
+      - suggested_platforms
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InvitationStatusEnum'
+          readOnly: true
+        invited_by_email:
+          type: string
+          format: email
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - accepted_at
+      - created_at
+      - email
+      - expires_at
+      - id
+      - invited_by_email
+      - role
+      - status
+    InvitationStatusEnum:
+      enum:
+      - pending
+      - accepted
+      - revoked
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `revoked` - Revoked
+    JobFailure:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        content_item:
+          type: string
+          format: uuid
+        content_title:
+          type: string
+        account_name:
+          type: string
+        platform:
+          type: string
+        is_mock:
+          type: boolean
+        error_code:
+          type: string
+        error_message:
+          type: string
+        at:
+          type: string
+          format: date-time
+      required:
+      - account_name
+      - at
+      - content_item
+      - content_title
+      - error_code
+      - error_message
+      - id
+      - is_mock
+      - platform
+    Liveness:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    MarkedRead:
+      type: object
+      properties:
+        updated:
+          type: integer
+      required:
+      - updated
+    MarketingPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MarketingPlanStatusEnum'
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/AuthorshipSourceEnum'
+          readOnly: true
+        horizon_weeks:
+          type: integer
+          readOnly: true
+        ai_model:
+          type: string
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        parent:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        created_by_email:
+          type: string
+          format: email
+          readOnly: true
+        warning_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        content:
+          readOnly: true
+        instructions:
+          type: string
+          readOnly: true
+        quality_warnings:
+          readOnly: true
+      required:
+      - ai_model
+      - content
+      - created_at
+      - created_by_email
+      - horizon_weeks
+      - id
+      - instructions
+      - is_mock
+      - parent
+      - quality_warnings
+      - source
+      - status
+      - title
+      - version
+      - warning_count
+    MarketingPlanList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MarketingPlanStatusEnum'
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/AuthorshipSourceEnum'
+          readOnly: true
+        horizon_weeks:
+          type: integer
+          readOnly: true
+        ai_model:
+          type: string
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        parent:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        created_by_email:
+          type: string
+          format: email
+          readOnly: true
+        warning_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ai_model
+      - created_at
+      - created_by_email
+      - horizon_weeks
+      - id
+      - is_mock
+      - parent
+      - source
+      - status
+      - title
+      - version
+      - warning_count
+    MarketingPlanStatusEnum:
+      enum:
+      - draft
+      - active
+      - archived
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `active` - Active
+        * `archived` - Archived
+    Me:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        memberships:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+      required:
+      - memberships
+      - user
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        user_id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - full_name
+      - id
+      - role
+      - user_id
+    MembershipSummary:
+      type: object
+      description: A caller's own membership, used by /auth/me/ and the org switcher.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        organization:
+          allOf:
+          - $ref: '#/components/schemas/Organization'
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        permissions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - id
+      - organization
+      - permissions
+      - role
+    MetricsRefreshed:
+      type: object
+      properties:
+        snapshots:
+          type: integer
+      required:
+      - snapshots
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/NotificationKindEnum'
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        link:
+          type: string
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - body
+      - created_at
+      - id
+      - kind
+      - link
+      - read_at
+      - title
+    NotificationKindEnum:
+      enum:
+      - publishing_failed
+      - account_reauth
+      - approval_requested
+      - automation
+      - recommendation
+      type: string
+      description: |-
+        * `publishing_failed` - Publishing failed
+        * `account_reauth` - Account needs reconnecting
+        * `approval_requested` - Approval requested
+        * `automation` - Automation
+        * `recommendation` - Recommendation
+    Ok:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    OnboardingStatus:
+      type: object
+      properties:
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/OnboardingStep'
+        percent:
+          type: integer
+        can_complete:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - can_complete
+      - completed_at
+      - percent
+      - steps
+    OnboardingStep:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        required:
+          type: boolean
+        complete:
+          type: boolean
+      required:
+      - complete
+      - key
+      - label
+      - required
+    OperationsOverview:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        window_days:
+          type: integer
+        background:
+          $ref: '#/components/schemas/BackgroundStatus'
+        publishing:
+          $ref: '#/components/schemas/PublishingOps'
+        ai:
+          $ref: '#/components/schemas/AIOps'
+        automation:
+          $ref: '#/components/schemas/AutomationOps'
+        social_accounts_needing_attention:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountAttention'
+        metrics_collection:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+      - ai
+      - automation
+      - background
+      - generated_at
+      - metrics_collection
+      - publishing
+      - social_accounts_needing_attention
+      - window_days
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - slug
+      - updated_at
+    PaginatedAIWorkflowRunList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIWorkflowRun'
+    PaginatedActionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Action'
+    PaginatedApprovalList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Approval'
+    PaginatedAuditEventList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+    PaginatedBrandAssetList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BrandAsset'
+    PaginatedCampaignList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Campaign'
+    PaginatedContentAssetList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentAsset'
+    PaginatedContentItemList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentItem'
+    PaginatedContentVersionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentVersion'
+    PaginatedInvitationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invitation'
+    PaginatedMarketingPlanListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketingPlanList'
+    PaginatedMemberList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedOrganizationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Organization'
+    PaginatedPlatformInfoList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformInfo'
+    PaginatedPublishedPostList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishedPost'
+    PaginatedPublishingJobList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublishingJob'
+    PaginatedRecommendationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+    PaginatedSocialAccountList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialAccount'
+    PaginatedTargetAudienceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetAudience'
+    PasswordChange:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+        new_password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+      required:
+      - current_password
+      - new_password
+    PasswordResetConfirm:
+      type: object
+      properties:
+        uid:
+          type: string
+        token:
+          type: string
+        new_password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+      required:
+      - new_password
+      - token
+      - uid
+    PasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    PatchedBrandGuideline:
+      type: object
+      properties:
+        tone:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 8
+        voice_description:
+          type: string
+          maxLength: 2000
+        do_list:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 20
+        dont_list:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 20
+        restricted_claims:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 30
+        example_posts:
+          type: array
+          items:
+            type: string
+            maxLength: 2200
+          maxItems: 10
+        colors:
+          type: array
+          items:
+            type: string
+            maxLength: 7
+          maxItems: 10
+        fonts:
+          type: array
+          items:
+            type: string
+            maxLength: 80
+          maxItems: 5
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedBusinessProfile:
+      type: object
+      properties:
+        business_name:
+          type: string
+          maxLength: 160
+        industry:
+          oneOf:
+          - $ref: '#/components/schemas/IndustryEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        website:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 200
+          - type: string
+            maxLength: 0
+        description:
+          type: string
+          maxLength: 4000
+        products_services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductService'
+        location:
+          type: string
+          maxLength: 200
+        service_area:
+          type: string
+          maxLength: 300
+        goals:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 10
+        preferred_platforms:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformEnum'
+          maxItems: 3
+        languages:
+          type: array
+          items:
+            type: string
+            maxLength: 10
+          maxItems: 5
+        onboarding_completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedCampaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        objective:
+          type: string
+          maxLength: 300
+        description:
+          type: string
+          maxLength: 4000
+        status:
+          $ref: '#/components/schemas/CampaignStatusEnum'
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        platforms:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformEnum'
+          maxItems: 3
+        key_messages:
+          type: array
+          items:
+            type: string
+            maxLength: 300
+          maxItems: 10
+        plan:
+          type: string
+          format: uuid
+          nullable: true
+        content_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedContentItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          readOnly: true
+        format:
+          allOf:
+          - $ref: '#/components/schemas/FormatEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ContentStatusEnum'
+          readOnly: true
+        campaign:
+          type: string
+          format: uuid
+          nullable: true
+        campaign_name:
+          type: string
+          readOnly: true
+        brief:
+          type: string
+          maxLength: 2000
+        planned_for:
+          type: string
+          format: date-time
+          nullable: true
+        current_version:
+          allOf:
+          - $ref: '#/components/schemas/ContentVersion'
+          readOnly: true
+        version_count:
+          type: integer
+          readOnly: true
+        asset_count:
+          type: integer
+          readOnly: true
+        pending_approval_id:
+          type: string
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedOrganization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPolicy:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/AutonomyModeEnum'
+        paused:
+          type: boolean
+          readOnly: true
+        paused_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        paused_by_email:
+          type: string
+          format: email
+          readOnly: true
+        auto_publish_enabled:
+          type: boolean
+        allowed_accounts:
+          type: array
+          items:
+            type: string
+            format: uuid
+        allowed_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
+        window_start_hour:
+          type: integer
+          maximum: 23
+          minimum: 0
+        window_end_hour:
+          type: integer
+          maximum: 24
+          minimum: 1
+        timezone:
+          type: string
+          maxLength: 64
+        max_automated_posts_per_day:
+          type: integer
+          maximum: 25
+          minimum: 0
+        auto_generate_drafts:
+          type: boolean
+        max_generated_drafts_per_week:
+          type: integer
+          maximum: 30
+          minimum: 0
+        version:
+          type: integer
+          readOnly: true
+        updated_by_email:
+          type: string
+          format: email
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedRoleUpdate:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+    PatchedTargetAudience:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 2000
+        age_range:
+          type: string
+          maxLength: 40
+        locations:
+          type: string
+          maxLength: 200
+        interests:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          maxItems: 15
+        pain_points:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 15
+        is_primary:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Email address
+        full_name:
+          type: string
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+    PlatformEnum:
+      enum:
+      - instagram
+      - facebook
+      - tiktok
+      type: string
+      description: |-
+        * `instagram` - instagram
+        * `facebook` - facebook
+        * `tiktok` - tiktok
+    PlatformInfo:
+      type: object
+      properties:
+        platform:
+          type: string
+        display_name:
+          type: string
+        configured:
+          type: boolean
+        simulation_available:
+          type: boolean
+        publish_formats:
+          type: array
+          items:
+            type: string
+        supports_text_only:
+          type: boolean
+        supports_metrics:
+          type: boolean
+        max_images:
+          type: integer
+        notes:
+          type: array
+          items:
+            type: string
+      required:
+      - configured
+      - display_name
+      - max_images
+      - notes
+      - platform
+      - publish_formats
+      - simulation_available
+      - supports_metrics
+      - supports_text_only
+    Policy:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/AutonomyModeEnum'
+        paused:
+          type: boolean
+          readOnly: true
+        paused_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        paused_by_email:
+          type: string
+          format: email
+          readOnly: true
+        auto_publish_enabled:
+          type: boolean
+        allowed_accounts:
+          type: array
+          items:
+            type: string
+            format: uuid
+        allowed_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
+        window_start_hour:
+          type: integer
+          maximum: 23
+          minimum: 0
+        window_end_hour:
+          type: integer
+          maximum: 24
+          minimum: 1
+        timezone:
+          type: string
+          maxLength: 64
+        max_automated_posts_per_day:
+          type: integer
+          maximum: 25
+          minimum: 0
+        auto_generate_drafts:
+          type: boolean
+        max_generated_drafts_per_week:
+          type: integer
+          maximum: 30
+          minimum: 0
+        version:
+          type: integer
+          readOnly: true
+        updated_by_email:
+          type: string
+          format: email
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - paused
+      - paused_at
+      - paused_by_email
+      - updated_at
+      - updated_by_email
+      - version
+    ProductService:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          default: ''
+          maxLength: 500
+      required:
+      - name
+    PublishRequest:
+      type: object
+      properties:
+        content_item:
+          type: string
+          format: uuid
+        social_account:
+          type: string
+          format: uuid
+        scheduled_for:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - content_item
+      - social_account
+    PublishedPost:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        job:
+          type: string
+          format: uuid
+          readOnly: true
+        content_item:
+          type: string
+          format: uuid
+          readOnly: true
+        content_title:
+          type: string
+          readOnly: true
+        social_account:
+          type: string
+          format: uuid
+          readOnly: true
+        account_name:
+          type: string
+          readOnly: true
+        platform:
+          type: string
+          readOnly: true
+        format:
+          type: string
+          readOnly: true
+        external_post_id:
+          type: string
+          readOnly: true
+        permalink:
+          type: string
+          format: uri
+          readOnly: true
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        metrics_last_collected_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - account_name
+      - content_item
+      - content_title
+      - external_post_id
+      - format
+      - id
+      - is_mock
+      - job
+      - metrics_last_collected_at
+      - permalink
+      - platform
+      - published_at
+      - social_account
+    PublishingAttemptOutcomeEnum:
+      enum:
+      - in_progress
+      - succeeded
+      - retryable_error
+      - permanent_error
+      - uncertain
+      type: string
+      description: |-
+        * `in_progress` - In progress
+        * `succeeded` - Succeeded
+        * `retryable_error` - Temporary error
+        * `permanent_error` - Permanent error
+        * `uncertain` - Outcome unknown
+    PublishingJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        content_item:
+          type: string
+          format: uuid
+          readOnly: true
+        content_title:
+          type: string
+          readOnly: true
+        social_account:
+          type: string
+          format: uuid
+          readOnly: true
+        account_name:
+          type: string
+          readOnly: true
+        platform:
+          type: string
+          readOnly: true
+        version_number:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PublishingJobStatusEnum'
+          readOnly: true
+        scheduled_for:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        attempts:
+          type: integer
+          readOnly: true
+        max_attempts:
+          type: integer
+          readOnly: true
+        next_attempt_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        external_post_id:
+          type: string
+          readOnly: true
+        permalink:
+          type: string
+          format: uri
+          readOnly: true
+        published_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        error_code:
+          type: string
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        initiated_by:
+          type: string
+          readOnly: true
+        created_by_email:
+          type: string
+          format: email
+          readOnly: true
+        attempt_log:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attempt'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - account_name
+      - attempt_log
+      - attempts
+      - content_item
+      - content_title
+      - created_at
+      - created_by_email
+      - error_code
+      - error_message
+      - external_post_id
+      - id
+      - initiated_by
+      - is_mock
+      - max_attempts
+      - next_attempt_at
+      - permalink
+      - platform
+      - published_at
+      - scheduled_for
+      - social_account
+      - status
+      - updated_at
+      - version_number
+    PublishingJobStatusEnum:
+      enum:
+      - scheduled
+      - queued
+      - publishing
+      - published
+      - failed
+      - cancelled
+      - needs_reconciliation
+      type: string
+      description: |-
+        * `scheduled` - Scheduled
+        * `queued` - Queued
+        * `publishing` - Publishing
+        * `published` - Published
+        * `failed` - Failed
+        * `cancelled` - Cancelled
+        * `needs_reconciliation` - Checking outcome
+    PublishingOps:
+      type: object
+      properties:
+        scheduled:
+          type: integer
+        queued:
+          type: integer
+        publishing:
+          type: integer
+        needs_reconciliation:
+          type: integer
+        published_recent:
+          type: integer
+        failed_recent:
+          type: integer
+        recent_failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobFailure'
+      required:
+      - failed_recent
+      - needs_reconciliation
+      - published_recent
+      - publishing
+      - queued
+      - recent_failures
+      - scheduled
+    Readiness:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/ReadinessStatusEnum'
+        checks:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/HealthCheck'
+      required:
+      - checks
+      - status
+    ReadinessStatusEnum:
+      enum:
+      - ok
+      - unavailable
+      type: string
+      description: |-
+        * `ok` - ok
+        * `unavailable` - unavailable
+    Recommendation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/RecommendationKindEnum'
+          readOnly: true
+        priority:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        observation:
+          type: string
+          readOnly: true
+        rationale:
+          type: string
+          readOnly: true
+        suggested_action:
+          type: string
+          readOnly: true
+        uncertainty:
+          type: string
+          readOnly: true
+        link:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/RecommendationStatusEnum'
+          readOnly: true
+        uses_simulated_data:
+          type: boolean
+          readOnly: true
+        generated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        decided_by_email:
+          type: string
+          format: email
+          readOnly: true
+        decided_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evidence'
+          readOnly: true
+      required:
+      - decided_at
+      - decided_by_email
+      - evidence
+      - generated_at
+      - id
+      - kind
+      - link
+      - observation
+      - priority
+      - rationale
+      - status
+      - suggested_action
+      - title
+      - uncertainty
+      - uses_simulated_data
+    RecommendationKindEnum:
+      enum:
+      - format_performance
+      - top_post
+      - posting_gap
+      - account_reauth
+      - stale_approvals
+      - publishing_failures
+      type: string
+      description: |-
+        * `format_performance` - Format performance
+        * `top_post` - Top post
+        * `posting_gap` - Posting consistency
+        * `account_reauth` - Account needs attention
+        * `stale_approvals` - Waiting approvals
+        * `publishing_failures` - Publishing failures
+    RecommendationStatusEnum:
+      enum:
+      - new
+      - accepted
+      - dismissed
+      type: string
+      description: |-
+        * `new` - New
+        * `accepted` - Accepted
+        * `dismissed` - Dismissed
+    RecommendationsRefreshed:
+      type: object
+      properties:
+        created:
+          type: integer
+        updated:
+          type: integer
+        resolved:
+          type: integer
+      required:
+      - created
+      - resolved
+      - updated
+    ReferenceData:
+      type: object
+      properties:
+        industries:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndustryPreset'
+        goals:
+          type: object
+          additionalProperties:
+            type: string
+        platforms:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+      - goals
+      - industries
+      - platforms
+    Regenerate:
+      type: object
+      properties:
+        instructions:
+          type: string
+          default: ''
+          maxLength: 2000
+    Register:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+        full_name:
+          type: string
+          maxLength: 150
+      required:
+      - email
+      - password
+    Retry:
+      type: object
+      properties:
+        confirm_not_published:
+          type: boolean
+          default: false
+    RevisePlan:
+      type: object
+      properties:
+        content: {}
+      required:
+      - content
+    RoleEnum:
+      enum:
+      - owner
+      - admin
+      - editor
+      - analyst
+      - viewer
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `editor` - Editor
+        * `analyst` - Analyst
+        * `viewer` - Viewer
+    RunFailure:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        workflow:
+          type: string
+        error_code:
+          type: string
+        error_message:
+          type: string
+        is_mock:
+          type: boolean
+        at:
+          type: string
+          format: date-time
+      required:
+      - at
+      - error_code
+      - error_message
+      - id
+      - is_mock
+      - workflow
+    Slide:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        body:
+          type: string
+          maxLength: 1000
+      required:
+      - body
+      - title
+    SocialAccount:
+      type: object
+      description: Never includes tokens.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        platform:
+          allOf:
+          - $ref: '#/components/schemas/PlatformEnum'
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+        account_type:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SocialAccountStatusEnum'
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        is_usable:
+          type: boolean
+          readOnly: true
+        scopes:
+          readOnly: true
+        token_expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_error:
+          type: string
+          readOnly: true
+        connected_by_email:
+          type: string
+          format: email
+          readOnly: true
+        connected_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - account_type
+      - connected_at
+      - connected_by_email
+      - external_id
+      - id
+      - is_mock
+      - is_usable
+      - last_error
+      - name
+      - platform
+      - scopes
+      - status
+      - token_expires_at
+      - username
+    SocialAccountStatusEnum:
+      enum:
+      - connected
+      - needs_reauth
+      - disconnected
+      type: string
+      description: |-
+        * `connected` - Connected
+        * `needs_reauth` - Reconnect required
+        * `disconnected` - Disconnected
+    Submit:
+      type: object
+      properties:
+        note:
+          type: string
+          default: ''
+          maxLength: 500
+    Target:
+      type: object
+      properties:
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+      required:
+      - format
+      - platform
+    TargetAudience:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 2000
+        age_range:
+          type: string
+          maxLength: 40
+        locations:
+          type: string
+          maxLength: 200
+        interests:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          maxItems: 15
+        pain_points:
+          type: array
+          items:
+            type: string
+            maxLength: 200
+          maxItems: 15
+        is_primary:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    UsageByWorkflow:
+      type: object
+      properties:
+        operation:
+          type: string
+        requests:
+          type: integer
+        failed:
+          type: integer
+        estimated_cost_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,6})?$
+      required:
+      - estimated_cost_usd
+      - failed
+      - operation
+      - requests
+    UsageSummary:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date-time
+        ai_requests:
+          type: integer
+        ai_requests_limit:
+          type: integer
+        ai_estimated_cost_usd:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,6})?$
+        ai_cost_limit_usd:
+          type: number
+          format: double
+        storage_bytes:
+          type: integer
+        storage_limit_bytes:
+          type: integer
+        publishes_last_24h:
+          type: integer
+        publishes_per_day_limit:
+          type: integer
+        ai_by_workflow:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsageByWorkflow'
+        cost_is_estimate:
+          type: boolean
+      required:
+      - ai_by_workflow
+      - ai_cost_limit_usd
+      - ai_estimated_cost_usd
+      - ai_requests
+      - ai_requests_limit
+      - cost_is_estimate
+      - period_start
+      - publishes_last_24h
+      - publishes_per_day_limit
+      - storage_bytes
+      - storage_limit_bytes
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: Email address
+        full_name:
+          type: string
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - email
+      - id
+    VersionFields:
+      type: object
+      description: Editable text fields of a content version (all optional; omitted
+        = unchanged).
+      properties:
+        headline:
+          type: string
+          maxLength: 200
+        hook:
+          type: string
+          maxLength: 300
+        caption:
+          type: string
+          maxLength: 10000
+        cta:
+          type: string
+          maxLength: 200
+        hashtags:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+          maxItems: 60
+        script:
+          type: string
+          maxLength: 10000
+        slides:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slide'
+        creative_brief:
+          type: string
+          maxLength: 4000
+        alt_text:
+          type: string
+          maxLength: 1000
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
