@@ -19,6 +19,17 @@ const policy = {
   max_automated_posts_per_day: 3,
   auto_generate_drafts: false,
   max_generated_drafts_per_week: 5,
+  ads_writes_paused: false,
+  ads_automation_enabled: false,
+  ads_allow_automated_pause: false,
+  ads_allow_automated_budget_changes: false,
+  ads_allow_automated_activation: false,
+  ads_auto_pause_on_spend_limit: false,
+  ads_limit_currency: "",
+  ads_max_daily_budget_per_campaign: null,
+  ads_max_total_daily_budget: null,
+  ads_monthly_spend_limit: null,
+  ads_max_budget_increase_percent: 20,
   version: 1,
   updated_by_email: null,
   updated_at: "2026-10-20T10:00:00Z",
@@ -44,6 +55,8 @@ describe("AutomationPage", () => {
     });
     expect(await screen.findByText("✗ Publish content no person approved")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /Manual/ })).toHaveAttribute("aria-checked", "true");
+    // Without ads.view the advertising limits aren't shown.
+    expect(screen.queryByRole("heading", { name: "Advertising" })).not.toBeInTheDocument();
     // Nothing runs on its own in manual mode, so there is nothing to pause.
     expect(screen.queryByRole("button", { name: "Pause automation" })).not.toBeInTheDocument();
   });
@@ -62,5 +75,21 @@ describe("AutomationPage", () => {
     expect(await screen.findByText("Automation is paused")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /Semi-automatic/ })).toBeDisabled();
     expect(screen.queryByRole("button", { name: /Resume automation/ })).not.toBeInTheDocument();
+  });
+
+  it("shows advertising limits and warns until they are set", async () => {
+    stub();
+    renderWithProviders(<AutomationPage />, {
+      member: membership("owner", ["automation.view", "automation.manage", "ads.view"]),
+    });
+    expect(await screen.findByRole("heading", { name: "Advertising" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Until all four limits are set, nothing that spends money/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /Stop all ad changes \(kill switch\)/ }),
+    ).not.toBeChecked();
+    // Automated ad switches stay disabled until ad automation itself is on.
+    expect(screen.getByRole("checkbox", { name: /pause campaigns without asking/ })).toBeDisabled();
   });
 });

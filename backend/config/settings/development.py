@@ -20,3 +20,9 @@ AI_PROVIDER = env(
 )
 
 SOCIAL_MOCK_ENABLED = env.bool("SOCIAL_MOCK_ENABLED", default=True)
+# Show the advertising features locally (simulation ad accounts work without Meta access).
+META_ADS_ENABLED = env.bool("META_ADS_ENABLED", default=True)
+
+# Labelled placeholder images, so the design studio's generate flow can be exercised
+# locally. There is no real image provider yet (docs/decisions/0015).
+IMAGE_PROVIDER = env("IMAGE_PROVIDER", default="mock")

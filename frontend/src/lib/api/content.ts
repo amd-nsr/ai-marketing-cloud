@@ -5,8 +5,21 @@ import { platformSchema } from "./brand";
 import { apiRequest } from "./client";
 import { emptySchema, paginated } from "./schemas";
 
-export const formatSchema = z.enum(["post", "carousel", "reel", "story", "short_video"]);
+/** Content channels: the social platforms plus export-only blog and email. */
+export const contentPlatformSchema = z.enum(["instagram", "facebook", "tiktok", "blog", "email"]);
+export type ContentPlatform = z.infer<typeof contentPlatformSchema>;
+
+export const formatSchema = z.enum([
+  "post",
+  "carousel",
+  "reel",
+  "story",
+  "short_video",
+  "article",
+  "newsletter",
+]);
 export type ContentFormat = z.infer<typeof formatSchema>;
+export type DocumentKind = "design" | "carousel" | "video";
 
 export const contentStatusSchema = z.enum([
   "draft",
@@ -40,6 +53,8 @@ export const versionSchema = z.object({
   slides: z.array(slideSchema),
   creative_brief: z.string(),
   alt_text: z.string(),
+  /** Editable design/carousel/video source; validated by the server (see lib/studio). */
+  document: z.record(z.string(), z.unknown()),
   source: z.enum(["manual", "ai", "ai_edited"]),
   ai_model: z.string(),
   is_mock: z.boolean(),
@@ -60,12 +75,13 @@ export type VersionFields = Pick<
   | "slides"
   | "creative_brief"
   | "alt_text"
+  | "document"
 >;
 
 export const contentItemSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
-  platform: platformSchema,
+  platform: contentPlatformSchema,
   format: formatSchema,
   status: contentStatusSchema,
   campaign: z.string().uuid().nullable(),
@@ -76,6 +92,9 @@ export const contentItemSchema = z.object({
   version_count: z.number(),
   asset_count: z.number(),
   pending_approval_id: z.string().uuid().nullable(),
+  document_kind: z.enum(["design", "carousel", "video"]).nullable(),
+  thumbnail_url: z.string().nullable(),
+  thumbnail_type: z.enum(["image", "video"]).nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -88,7 +107,12 @@ export const assetSchema = z.object({
   size_bytes: z.number(),
   width: z.number().nullable(),
   height: z.number().nullable(),
+  duration_seconds: z.number().nullable(),
   position: z.number(),
+  source: z.enum(["upload", "render"]),
+  page_id: z.string(),
+  source_hash: z.string(),
+  version_number: z.number().nullable(),
   file_url: z.string(),
   created_at: z.string(),
 });
@@ -98,7 +122,7 @@ export const approvalSchema = z.object({
   id: z.string().uuid(),
   item: z.string().uuid(),
   item_title: z.string(),
-  item_platform: platformSchema,
+  item_platform: contentPlatformSchema,
   item_format: formatSchema,
   item_status: contentStatusSchema,
   version: versionSchema,
@@ -148,6 +172,7 @@ const base = (orgId: string) => `/api/v1/orgs/${orgId}`;
 export interface ContentFilters {
   status?: string;
   platform?: string;
+  format?: string;
   campaign?: string;
   q?: string;
   planned_from?: string;
@@ -210,13 +235,21 @@ export const restoreVersion = (orgId: string, id: string, number: number) =>
     schema: versionSchema,
   });
 
+export interface CreativeDirection {
+  objective?: string;
+  audience?: string | null;
+  tone?: string;
+  language?: string;
+  length?: "" | "short" | "medium" | "long";
+}
+
 export const generateContent = (
   orgId: string,
   body: {
     brief: string;
     targets: { platform: string; format: string }[];
     campaign?: string | null;
-  },
+  } & CreativeDirection,
 ) =>
   apiRequest(`${base(orgId)}/content/generate/`, {
     method: "POST",
@@ -302,4 +335,221 @@ export const deleteCampaign = (orgId: string, id: string) =>
 export const listItemApprovals = (orgId: string, itemId: string) =>
   apiRequest(`${base(orgId)}/approvals/?item=${itemId}&page_size=20`, {
     schema: paginated(approvalSchema),
+  });
+
+// --- Content studio ---------------------------------------------------------------
+
+export type AssistOperation =
+  | "rewrite"
+  | "shorten"
+  | "expand"
+  | "translate"
+  | "tone"
+  | "alternatives"
+  | "hashtags"
+  | "proofread"
+  | "draft"
+  | "emoji";
+
+export const assistContent = (
+  orgId: string,
+  id: string,
+  body: {
+    operation: AssistOperation;
+    field: string;
+    text: string;
+    tone?: string;
+    language?: string;
+    instructions?: string;
+    keywords?: string[];
+    length?: "" | "short" | "medium" | "long";
+  },
+) =>
+  apiRequest(`${base(orgId)}/content/${id}/assist/`, {
+    method: "POST",
+    body,
+    schema: workflowRunSchema,
+  });
+
+export const storyboardSchema = z.object({
+  title: z.string(),
+  hook: z.string(),
+  caption: z.string(),
+  notes: z.array(z.string()),
+  scenes: z.array(
+    z.object({
+      description: z.string(),
+      on_screen_text: z.string(),
+      voiceover: z.string(),
+      duration_seconds: z.number(),
+    }),
+  ),
+});
+export type Storyboard = z.infer<typeof storyboardSchema>;
+
+export const requestStoryboard = (orgId: string, id: string, brief = "") =>
+  apiRequest(`${base(orgId)}/content/${id}/storyboard/`, {
+    method: "POST",
+    body: { brief },
+    schema: workflowRunSchema,
+  });
+
+export const duplicateContent = (
+  orgId: string,
+  id: string,
+  body: { title?: string; platform?: string; format?: string; campaign?: string | null } = {},
+) =>
+  apiRequest(`${base(orgId)}/content/${id}/duplicate/`, {
+    method: "POST",
+    body,
+    schema: contentItemSchema,
+  });
+
+export function uploadRender(orgId: string, id: string, pageId: string, file: Blob) {
+  const form = new FormData();
+  form.append("page_id", pageId);
+  form.append("file", file, `${pageId}.png`);
+  return apiRequest(`${base(orgId)}/content/${id}/renders/`, {
+    method: "POST",
+    body: form,
+    schema: assetSchema,
+  });
+}
+
+export const renderJobSchema = z.object({
+  id: z.string().uuid(),
+  item: z.string().uuid(),
+  version_number: z.number(),
+  status: z.enum(["queued", "running", "succeeded", "failed"]),
+  attempts: z.number(),
+  error_code: z.string(),
+  error_message: z.string(),
+  output: assetSchema.nullable(),
+  started_at: z.string().nullable(),
+  finished_at: z.string().nullable(),
+  created_at: z.string(),
+});
+export type RenderJob = z.infer<typeof renderJobSchema>;
+
+export const renderVideo = (orgId: string, id: string) =>
+  apiRequest(`${base(orgId)}/content/${id}/render-video/`, {
+    method: "POST",
+    schema: renderJobSchema,
+  });
+export const listRenderJobs = (orgId: string, id: string) =>
+  apiRequest(`${base(orgId)}/content/${id}/render-jobs/`, { schema: z.array(renderJobSchema) });
+export const getRenderJob = (orgId: string, jobId: string) =>
+  apiRequest(`${base(orgId)}/render-jobs/${jobId}/`, { schema: renderJobSchema });
+
+const capabilitySchema = z.object({
+  available: z.boolean(),
+  is_mock: z.boolean(),
+  provider: z.string().nullable(),
+  note: z.string(),
+});
+export const studioCapabilitiesSchema = z.object({
+  text_generation: capabilitySchema,
+  image_generation: capabilitySchema,
+  video_rendering: capabilitySchema,
+  ai_video_generation: capabilitySchema,
+  ai_voiceover: capabilitySchema,
+  max_media_upload_bytes: z.number(),
+  max_image_upload_bytes: z.number(),
+});
+export type StudioCapabilities = z.infer<typeof studioCapabilitiesSchema>;
+export const getStudioCapabilities = (orgId: string) =>
+  apiRequest(`${base(orgId)}/content/capabilities/`, { schema: studioCapabilitiesSchema });
+
+// --- Media library ----------------------------------------------------------------
+
+export const libraryAssetSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.enum(["image", "video", "audio"]),
+  source: z.enum(["upload", "ai_generated"]),
+  title: z.string(),
+  tags: z.array(z.string()),
+  original_filename: z.string(),
+  content_type: z.string(),
+  size_bytes: z.number(),
+  width: z.number().nullable(),
+  height: z.number().nullable(),
+  duration_seconds: z.number().nullable(),
+  generation: z.record(z.string(), z.unknown()),
+  is_mock: z.boolean(),
+  file_url: z.string(),
+  created_at: z.string(),
+});
+export type LibraryAsset = z.infer<typeof libraryAssetSchema>;
+
+export const listLibrary = (
+  orgId: string,
+  filters: { kind?: string; q?: string; tag?: string; source?: string } = {},
+) => {
+  const params = new URLSearchParams({ page_size: "100" });
+  for (const [k, v] of Object.entries(filters)) if (v) params.set(k, v);
+  return apiRequest(`${base(orgId)}/library/?${params}`, {
+    schema: paginated(libraryAssetSchema),
+  });
+};
+export function uploadLibraryAsset(orgId: string, file: File, title = "", tags: string[] = []) {
+  const form = new FormData();
+  form.append("file", file);
+  if (title) form.append("title", title);
+  for (const t of tags) form.append("tags", t);
+  return apiRequest(`${base(orgId)}/library/`, {
+    method: "POST",
+    body: form,
+    schema: libraryAssetSchema,
+  });
+}
+export const updateLibraryAsset = (
+  orgId: string,
+  id: string,
+  body: { title?: string; tags?: string[] },
+) =>
+  apiRequest(`${base(orgId)}/library/${id}/`, {
+    method: "PATCH",
+    body,
+    schema: libraryAssetSchema,
+  });
+export const deleteLibraryAsset = (orgId: string, id: string) =>
+  apiRequest(`${base(orgId)}/library/${id}/`, { method: "DELETE", schema: emptySchema });
+export const generateLibraryImage = (
+  orgId: string,
+  body: { prompt: string; visual_style?: string; width: number; height: number },
+) =>
+  apiRequest(`${base(orgId)}/library/generate/`, {
+    method: "POST",
+    body,
+    schema: workflowRunSchema,
+  });
+
+// --- Templates --------------------------------------------------------------------
+
+export const contentTemplateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  kind: z.enum(["design", "carousel", "video"]),
+  document: z.record(z.string(), z.unknown()),
+  built_in: z.boolean(),
+});
+export type ContentTemplate = z.infer<typeof contentTemplateSchema>;
+export const listTemplates = (orgId: string, kind?: string) =>
+  apiRequest(`${base(orgId)}/content-templates/${kind ? `?kind=${kind}` : ""}`, {
+    schema: z.array(contentTemplateSchema),
+  });
+export const saveTemplate = (
+  orgId: string,
+  body: { name: string; description?: string; document: Record<string, unknown> },
+) =>
+  apiRequest(`${base(orgId)}/content-templates/`, {
+    method: "POST",
+    body,
+    schema: contentTemplateSchema,
+  });
+export const deleteTemplate = (orgId: string, id: string) =>
+  apiRequest(`${base(orgId)}/content-templates/${id}/`, {
+    method: "DELETE",
+    schema: emptySchema,
   });

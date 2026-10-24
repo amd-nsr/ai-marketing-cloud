@@ -29,7 +29,7 @@ import { PublishDialog } from "@/features/publishing/publish-dialog";
 import { JOB_STATUS } from "@/features/publishing/publishing-page";
 import { Badge } from "@/components/ui/badge";
 
-import { StatusBadge } from "../labels";
+import { isSocial, StatusBadge } from "../labels";
 import { useItemApprovals, useRefreshItem } from "./queries";
 
 export function WorkflowPanel({ item }: { item: ContentItem }) {
@@ -183,7 +183,13 @@ export function WorkflowPanel({ item }: { item: ContentItem }) {
               Approved by {lastDecision?.decided_by_email ?? "a reviewer"}
               {lastDecision?.decided_at && ` on ${formatDateTime(lastDecision.decided_at)}`}.
             </Alert>
-            {can("publishing.publish") ? (
+            {!isSocial(item.platform) ? (
+              <p className="text-muted">
+                {item.platform === "email" ? "Emails" : "Blog articles"} aren&apos;t sent from here:
+                copy the approved text into your {item.platform === "email" ? "email" : "website"}{" "}
+                tool. Plan the date in the calendar.
+              </p>
+            ) : can("publishing.publish") ? (
               <Button onClick={() => setPublishing(true)}>Publish or schedule</Button>
             ) : (
               <p className="text-muted">An owner or admin can publish this.</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -28,14 +28,15 @@ import {
   type PolicyChanges,
   resumeAutomation,
   runAutomationNow,
-  updatePolicy,
 } from "@/lib/api/automation";
 import { errorMessage } from "@/lib/api/errors";
 import { listSocialAccounts } from "@/lib/api/social";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { AdvertisingSettings } from "./advertising-settings";
 import { MODES, WEEKDAYS } from "./modes";
+import { usePolicyMutation } from "./use-policy-mutation";
 
 const ACTION_STATUS: Record<AutomationAction["status"], { label: string; tone: BadgeTone }> = {
   awaiting_approval: { label: "Needs approval", tone: "warning" },
@@ -48,22 +49,12 @@ const ACTION_STATUS: Record<AutomationAction["status"], { label: string; tone: B
   cancelled: { label: "Cancelled", tone: "neutral" },
 };
 
-function usePolicyMutation() {
-  const { organization } = useOrg();
-  const queryClient = useQueryClient();
-  const toast = useToast();
-  return useMutation({
-    mutationFn: (changes: PolicyChanges) => updatePolicy(organization.id, changes),
-    onSuccess: (policy) => {
-      queryClient.setQueryData(["orgs", organization.id, "automation", "policy"], policy);
-      void queryClient.invalidateQueries({
-        queryKey: ["orgs", organization.id, "automation", "actions"],
-      });
-      toast("Automation settings saved. Pending work was re-checked against them.");
-    },
-    onError: (e) => toast(errorMessage(e), "danger"),
-  });
-}
+const AD_ACTION_LABEL: Record<string, string> = {
+  ads_activate: "Activate",
+  ads_pause: "Pause",
+  ads_budget_change: "Change budget",
+  ads_create: "Create on Meta",
+};
 
 function ModePicker({ policy }: { policy: AutomationPolicy }) {
   const { can } = useOrg();
@@ -363,7 +354,13 @@ function ActionCard({ action }: { action: AutomationAction }) {
           <p className="font-medium">
             {action.action_type === "publish_content"
               ? `Publish “${action.content_title ?? "content"}”`
-              : `Draft: ${String(action.payload.brief ?? "").slice(0, 80)}`}
+              : action.ad_campaign
+                ? `${AD_ACTION_LABEL[action.action_type] ?? "Ad change"}: ${action.ad_campaign_name ?? "campaign"}${
+                    typeof action.payload.daily_budget === "string"
+                      ? ` → ${action.payload.daily_budget} ${action.ad_campaign_currency ?? ""}/day`
+                      : ""
+                  }${action.ad_account_is_mock ? " (simulation)" : ""}`
+                : `Draft: ${String(action.payload.brief ?? "").slice(0, 80)}`}
           </p>
           <p className="text-xs text-muted">
             {action.action_type === "publish_content" && (
@@ -409,6 +406,14 @@ function ActionCard({ action }: { action: AutomationAction }) {
               Cancel scheduled post
             </Button>
           )}
+        {action.ad_campaign && (
+          <Link
+            href={`/o/${organization.id}/ads/campaigns/${action.ad_campaign}`}
+            className="text-xs text-primary hover:underline"
+          >
+            Open campaign
+          </Link>
+        )}
         {action.content_item && (
           <Link
             href={`/o/${organization.id}/content/${action.content_item}`}
@@ -514,6 +519,7 @@ export function AutomationPage() {
       <div className="flex flex-col gap-6">
         <ModePicker policy={p} />
         {p.mode !== "manual" && <AutomaticSettings key={p.version} policy={p} />}
+        {can("ads.view") && <AdvertisingSettings key={`ads-${p.version}`} policy={p} />}
         <section aria-labelledby="actions-heading">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 id="actions-heading" className="text-base font-semibold">

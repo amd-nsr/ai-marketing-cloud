@@ -30,6 +30,8 @@ org_patterns: list[URLPattern | URLResolver] = [
     path("", include("apps.analytics.urls")),
     path("", include("apps.automation.urls")),
     path("", include("apps.operations.urls")),
+    path("", include("apps.meta.urls")),
+    path("", include("apps.ads.urls")),
 ]
 
 urlpatterns = [

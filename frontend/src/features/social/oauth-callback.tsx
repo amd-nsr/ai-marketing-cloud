@@ -30,6 +30,11 @@ export function OAuthCallback() {
         await queryClient.invalidateQueries({
           queryKey: ["orgs", result.organization_id, "social-accounts"],
         });
+        if (result.meta_connection_id) {
+          // Meta logins continue with choosing which Pages and ad accounts to connect.
+          router.replace(`/o/${result.organization_id}/accounts/meta/${result.meta_connection_id}`);
+          return;
+        }
         router.replace(`/o/${result.organization_id}/accounts?connected=${result.accounts.length}`);
       })
       .catch((e: unknown) => setError(errorMessage(e)));

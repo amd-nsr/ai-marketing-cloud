@@ -18,3 +18,5 @@ numbered file for each decision; supersede rather than rewrite accepted records.
 | [0011](0011-analytics-recommendations.md) | Metric snapshots, missing ≠ zero, per-platform aggregates, rule-based recommendations | Accepted |
 | [0012](0012-autonomy-policy-engine.md) | One policy engine for manual/semi/automatic, durable actions, re-evaluation on change | Accepted |
 | [0013](0013-operational-hardening.md) | Heartbeat, stuck-work sweeper, operations overview, dependency audit | Accepted |
+| [0014](0014-meta-integration-and-ads.md) | Shared Meta layer, Page selection, paid ads under deterministic spend limits | Accepted |
+| [0015](0015-content-studio-documents-and-rendering.md) | Content studio: versioned editable documents, separate renders, media library, ffmpeg video jobs, optional image generation | Accepted |

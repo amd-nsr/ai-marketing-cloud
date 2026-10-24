@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Approvals", href: "/approvals", permission: "content.view", section: "Create" },
   { label: "Publishing", href: "/publishing", permission: "publishing.view", section: "Publish" },
   { label: "Social accounts", href: "/accounts", permission: "social.view", section: "Publish" },
+  { label: "Ads", href: "/ads", permission: "ads.view", section: "Publish" },
   { label: "Analytics", href: "/analytics", permission: "analytics.view", section: "Measure" },
   {
     label: "Recommendations",

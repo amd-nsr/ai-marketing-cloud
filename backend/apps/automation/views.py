@@ -51,6 +51,17 @@ class PolicySerializer(serializers.ModelSerializer[AutomationPolicy]):
             "max_automated_posts_per_day",
             "auto_generate_drafts",
             "max_generated_drafts_per_week",
+            "ads_writes_paused",
+            "ads_automation_enabled",
+            "ads_allow_automated_pause",
+            "ads_allow_automated_budget_changes",
+            "ads_allow_automated_activation",
+            "ads_auto_pause_on_spend_limit",
+            "ads_limit_currency",
+            "ads_max_daily_budget_per_campaign",
+            "ads_max_total_daily_budget",
+            "ads_monthly_spend_limit",
+            "ads_max_budget_increase_percent",
             "version",
             "updated_by_email",
             "updated_at",
@@ -68,7 +79,17 @@ class PolicySerializer(serializers.ModelSerializer[AutomationPolicy]):
             "window_end_hour": {"min_value": 1, "max_value": 24},
             "max_automated_posts_per_day": {"min_value": 0, "max_value": 25},
             "max_generated_drafts_per_week": {"min_value": 0, "max_value": 30},
+            "ads_max_budget_increase_percent": {"min_value": 0, "max_value": 100},
+            "ads_max_daily_budget_per_campaign": {"min_value": 0},
+            "ads_max_total_daily_budget": {"min_value": 0},
+            "ads_monthly_spend_limit": {"min_value": 0},
         }
+
+    def validate_ads_limit_currency(self, value: str) -> str:
+        value = value.upper()
+        if value and (len(value) != 3 or not value.isalpha()):
+            raise serializers.ValidationError("Use a three-letter currency code, e.g. USD.")
+        return value
 
     def validate_timezone(self, value: str) -> str:
         if value not in available_timezones():
@@ -89,6 +110,20 @@ class PolicySerializer(serializers.ModelSerializer[AutomationPolicy]):
             )
         if "allowed_weekdays" in attrs:
             attrs["allowed_weekdays"] = sorted(set(attrs["allowed_weekdays"]))
+
+        def current(name: str) -> Any:
+            return attrs.get(name, getattr(self.instance, name, None))
+
+        per_campaign = current("ads_max_daily_budget_per_campaign")
+        total = current("ads_max_total_daily_budget")
+        if per_campaign is not None and total is not None and per_campaign > total:
+            raise serializers.ValidationError(
+                {
+                    "ads_max_total_daily_budget": (
+                        "The total daily limit can't be lower than the per-campaign limit."
+                    )
+                }
+            )
         return attrs
 
 
@@ -109,6 +144,15 @@ class ActionSerializer(serializers.ModelSerializer[AutomationAction]):
     )
     publishing_job_status = serializers.CharField(
         source="publishing_job.status", read_only=True, default=None
+    )
+    ad_campaign_name = serializers.CharField(
+        source="ad_campaign.name", read_only=True, default=None
+    )
+    ad_campaign_currency = serializers.CharField(
+        source="ad_campaign.ad_account.currency", read_only=True, default=None
+    )
+    ad_account_is_mock = serializers.BooleanField(
+        source="ad_campaign.ad_account.is_mock", read_only=True, default=None
     )
 
     class Meta:
@@ -137,6 +181,10 @@ class ActionSerializer(serializers.ModelSerializer[AutomationAction]):
             "publishing_job",
             "publishing_job_status",
             "ai_run",
+            "ad_campaign",
+            "ad_campaign_name",
+            "ad_campaign_currency",
+            "ad_account_is_mock",
             "approved_by_email",
             "approved_at",
             "executed_at",

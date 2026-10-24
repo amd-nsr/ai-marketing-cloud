@@ -2,8 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-Platform = Literal["instagram", "facebook", "tiktok"]
-FormatName = Literal["post", "carousel", "reel", "story", "short_video"]
+Platform = Literal["instagram", "facebook", "tiktok", "blog", "email"]
+FormatName = Literal["post", "carousel", "reel", "story", "short_video", "article", "newsletter"]
 
 
 class Slide(BaseModel):
@@ -31,3 +31,27 @@ class ContentDraft(BaseModel):
 class ContentBatchOutput(BaseModel):
     drafts: list[ContentDraft]
     notes: list[str] = Field(description="Assumptions made and anything the owner should verify.")
+
+
+class AssistOutput(BaseModel):
+    """Writing-assist result: one or more replacement texts for the selected section."""
+
+    options: list[str] = Field(
+        description="Replacement texts, best first. Exactly one unless alternatives were asked."
+    )
+    notes: list[str] = Field(description="Anything the owner should verify. May be empty.")
+
+
+class StoryboardScene(BaseModel):
+    description: str = Field(description="What is shown: shot, subject, framing.")
+    on_screen_text: str = Field(description="Short overlay text for this scene; may be empty.")
+    voiceover: str = Field(description="What is said during this scene; may be empty.")
+    duration_seconds: float = Field(description="Between 1 and 15 seconds.")
+
+
+class StoryboardOutput(BaseModel):
+    title: str
+    hook: str = Field(description="What happens in the first second to stop the scroll.")
+    scenes: list[StoryboardScene] = Field(description="3 to 8 scenes in order.")
+    caption: str = Field(description="Publishable caption without hashtags.")
+    notes: list[str]

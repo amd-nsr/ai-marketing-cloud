@@ -14,6 +14,7 @@ api_v1: list[URLPattern | URLResolver] = [
     path("orgs/", include("apps.organizations.urls")),
     path("reference-data/", ReferenceDataView.as_view(), name="reference-data"),
     path("social/oauth/callback/", OAuthCallbackView.as_view(), name="social-oauth-callback"),
+    path("meta/", include("apps.meta.public_urls")),
     path("schema/", SpectacularAPIView.as_view(), name="openapi-schema"),
 ]
 

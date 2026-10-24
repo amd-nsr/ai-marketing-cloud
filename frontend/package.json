@@ -16,10 +16,12 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.5",
+    "konva": "^10.9.0",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "^7.90.0",
+    "react-konva": "^19.3.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {

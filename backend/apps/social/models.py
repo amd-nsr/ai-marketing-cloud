@@ -5,10 +5,17 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from apps.content.models import Platform
 from apps.core.models import OrganizationOwnedModel
 
 from . import crypto
+
+
+class SocialPlatform(models.TextChoices):
+    """Platforms with a social integration (a subset of the content model's channels)."""
+
+    INSTAGRAM = "instagram", "Instagram"
+    FACEBOOK = "facebook", "Facebook"
+    TIKTOK = "tiktok", "TikTok"
 
 
 class SocialAccount(OrganizationOwnedModel):
@@ -19,7 +26,7 @@ class SocialAccount(OrganizationOwnedModel):
         NEEDS_REAUTH = "needs_reauth", "Reconnect required"
         DISCONNECTED = "disconnected", "Disconnected"
 
-    platform = models.CharField(max_length=16, choices=Platform.choices)
+    platform = models.CharField(max_length=16, choices=SocialPlatform.choices)
     external_id = models.CharField(max_length=120)
     name = models.CharField(max_length=200)
     username = models.CharField(max_length=200, blank=True)
@@ -37,6 +44,14 @@ class SocialAccount(OrganizationOwnedModel):
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
     )
     connected_at = models.DateTimeField(default=timezone.now)
+    #: The Meta login this Page was selected from (Facebook only).
+    meta_connection = models.ForeignKey(
+        "meta.MetaConnection",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pages",
+    )
 
     class Meta:
         ordering = ["platform", "name"]
@@ -80,7 +95,7 @@ def _expiry() -> datetime:
 class OAuthState(OrganizationOwnedModel):
     """Single-use CSRF state (and PKCE verifier) for one authorization attempt."""
 
-    platform = models.CharField(max_length=16, choices=Platform.choices)
+    platform = models.CharField(max_length=16, choices=SocialPlatform.choices)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
     state = models.CharField(max_length=64, unique=True, default=_state)
     code_verifier = models.CharField(max_length=128, blank=True)

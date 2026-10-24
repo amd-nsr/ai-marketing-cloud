@@ -55,7 +55,11 @@ export function MediaPanel({ item }: { item: ContentItem }) {
     <Card>
       <CardHeader
         title="Media"
-        description="Images attached to this post. Video upload arrives with publishing."
+        description={
+          item.document_kind
+            ? "Exports of the design or video appear here automatically. You can also attach your own images."
+            : "Images attached to this post."
+        }
         actions={
           editable && (
             <>
@@ -87,12 +91,24 @@ export function MediaPanel({ item }: { item: ContentItem }) {
         <ul className="grid grid-cols-3 gap-2">
           {assets.data.map((a) => (
             <li key={a.id} className="group relative overflow-hidden rounded border border-border">
-              {/* eslint-disable-next-line @next/next/no-img-element -- authenticated same-origin file */}
-              <img
-                src={a.file_url}
-                alt={item.current_version?.alt_text || "Attached image"}
-                className="aspect-square w-full object-cover"
-              />
+              {a.content_type.startsWith("video/") ? (
+                <video
+                  src={a.file_url}
+                  muted
+                  preload="metadata"
+                  className="aspect-square w-full bg-black object-cover"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element -- authenticated same-origin file
+                <img
+                  src={a.file_url}
+                  alt={item.current_version?.alt_text || "Attached image"}
+                  className="aspect-square w-full object-cover"
+                />
+              )}
+              <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] text-white">
+                {a.source === "render" ? `Export · v${a.version_number ?? "?"}` : "Upload"}
+              </span>
               {editable && (
                 <button
                   type="button"

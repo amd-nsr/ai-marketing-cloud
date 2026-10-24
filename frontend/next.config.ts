@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  experimental: {
+    // With proxy.ts present, Next.js buffers request bodies and silently truncates them
+    // above this size, which breaks proxied uploads. Keep it at least the backend's
+    // MAX_MEDIA_UPLOAD_BYTES (video/audio library uploads, 100 MB by default).
+    proxyClientMaxBodySize: (process.env.MAX_PROXY_BODY_SIZE ?? "105mb") as `${number}mb`,
+  },
   // Django routes end in "/"; don't let Next redirect them away before proxying.
   skipTrailingSlashRedirect: true,
   turbopack: {

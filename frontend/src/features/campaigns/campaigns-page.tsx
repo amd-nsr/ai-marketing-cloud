@@ -30,7 +30,7 @@ import { errorMessage } from "@/lib/api/errors";
 import { formatDate } from "@/lib/format";
 import { applyServerErrors } from "@/lib/validation/forms";
 import { zodResolver } from "@/lib/validation/zod-resolver";
-import { PLATFORM_LABEL } from "@/features/content/labels";
+import { PLATFORM_LABEL, SOCIAL_PLATFORMS } from "@/features/content/labels";
 
 const STATUS_TONE = {
   planned: "info",
@@ -152,7 +152,7 @@ function CampaignDialog({ campaign, onClose }: { campaign: Campaign | null; onCl
             <CheckboxGroup
               legend="Platforms"
               columns={3}
-              options={Object.entries(PLATFORM_LABEL).map(([value, label]) => ({ value, label }))}
+              options={SOCIAL_PLATFORMS.map((value) => ({ value, label: PLATFORM_LABEL[value] }))}
               value={field.value}
               onChange={field.onChange}
             />

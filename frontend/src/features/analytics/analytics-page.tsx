@@ -26,6 +26,7 @@ import { formatDate, formatDateTime, formatMetric } from "@/lib/format";
 import { FORMAT_LABEL, PLATFORM_LABEL } from "@/features/content/labels";
 
 import { PostMetricChart } from "./post-chart";
+import { AdsSummary } from "./ads-summary";
 
 const STATUS_NOTE: Record<string, string> = {
   pending: "Not collected yet",
@@ -236,6 +237,7 @@ export function AnalyticsPage() {
         />
       )}
       <div className="flex flex-col gap-6">
+        <AdsSummary days={days} />
         {overview.data?.platforms.map((p) => (
           <PlatformSection
             key={p.platform}

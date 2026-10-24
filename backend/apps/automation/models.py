@@ -38,6 +38,32 @@ class AutomationPolicy(OrganizationOwnedModel):
     #: Semi/automatic: let the system draft routine content from the active plan.
     auto_generate_drafts = models.BooleanField(default=False)
     max_generated_drafts_per_week = models.PositiveSmallIntegerField(default=5)
+
+    # --- Advertising (all off / unset by default) -------------------------------------
+    #: Kill switch for ad changes: when on, nothing may create, activate or raise budgets
+    #: (people included); pausing campaigns is still allowed because it stops spend.
+    ads_writes_paused = models.BooleanField(default=False)
+    #: May the system propose and (in automatic mode) execute ad changes at all?
+    ads_automation_enabled = models.BooleanField(default=False)
+    ads_allow_automated_pause = models.BooleanField(default=False)
+    ads_allow_automated_budget_changes = models.BooleanField(default=False)
+    ads_allow_automated_activation = models.BooleanField(default=False)
+    #: Pause running campaigns automatically once the monthly spend limit is reached.
+    ads_auto_pause_on_spend_limit = models.BooleanField(default=False)
+    #: Spend limits, in this currency. Any spend-affecting change is refused until they
+    #: are set, and for ad accounts in a different currency.
+    ads_limit_currency = models.CharField(max_length=3, blank=True)
+    ads_max_daily_budget_per_campaign = models.DecimalField(
+        max_digits=14, decimal_places=2, null=True, blank=True
+    )
+    ads_max_total_daily_budget = models.DecimalField(
+        max_digits=14, decimal_places=2, null=True, blank=True
+    )
+    ads_monthly_spend_limit = models.DecimalField(
+        max_digits=14, decimal_places=2, null=True, blank=True
+    )
+    ads_max_budget_increase_percent = models.PositiveSmallIntegerField(default=20)
+
     version = models.PositiveIntegerField(default=1)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
@@ -60,6 +86,10 @@ class AutomationAction(OrganizationOwnedModel):
     class ActionType(models.TextChoices):
         PUBLISH_CONTENT = "publish_content", "Publish content"
         GENERATE_DRAFT = "generate_draft", "Generate a draft"
+        ADS_CREATE = "ads_create", "Create ad campaign on Meta"
+        ADS_ACTIVATE = "ads_activate", "Activate ad campaign"
+        ADS_PAUSE = "ads_pause", "Pause ad campaign"
+        ADS_BUDGET_CHANGE = "ads_budget_change", "Change ad budget"
 
     class Status(models.TextChoices):
         AWAITING_APPROVAL = "awaiting_approval", "Awaiting approval"
@@ -100,6 +130,13 @@ class AutomationAction(OrganizationOwnedModel):
     )
     ai_run = models.ForeignKey(
         "ai.AIWorkflowRun", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    ad_campaign = models.ForeignKey(
+        "ads.AdCampaign",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="automation_actions",
     )
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"

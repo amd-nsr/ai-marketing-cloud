@@ -53,6 +53,13 @@ def start_connection(org: Organization, *, user: Any, platform: str, mock: bool)
         actor=user,
         metadata={"platform": platform, "simulation": mock},
     )
+    if platform == "facebook":
+        # Facebook connects through a Meta login, then the person selects Pages.
+        from apps.meta.client import account_client
+
+        return account_client(mock=mock).authorization_url(
+            state=state.state, redirect_uri=state.redirect_uri
+        )
     return adapter.authorization_url(
         state=state.state, redirect_uri=state.redirect_uri, code_challenge=challenge
     )
@@ -61,7 +68,9 @@ def start_connection(org: Organization, *, user: Any, platform: str, mock: bool)
 @transaction.atomic
 def complete_connection(
     *, user: Any, state: str, code: str
-) -> tuple[Organization, list[SocialAccount]]:
+) -> tuple[Organization, list[SocialAccount], Any]:
+    """Finish an authorization. Returns the organization, the accounts connected, and
+    (for Facebook) the Meta connection whose Pages and ad accounts the person selects next."""
     try:
         oauth = (
             OAuthState.objects.select_for_update().select_related("organization").get(state=state)
@@ -74,6 +83,27 @@ def complete_connection(
         raise PermissionDenied("This connection was started by someone else.")
     oauth.used_at = timezone.now()
     oauth.save(update_fields=["used_at", "updated_at"])
+
+    if oauth.platform == "facebook":
+        from apps.meta.services import complete_authorization
+
+        try:
+            connection = complete_authorization(
+                oauth.organization,
+                user=user,
+                code=code,
+                redirect_uri=oauth.redirect_uri,
+                mock=oauth.mock,
+            )
+        except SocialError as exc:
+            audit.record(
+                "social.connect_failed",
+                organization=oauth.organization,
+                actor=user,
+                metadata={"platform": "facebook", "error": exc.code},
+            )
+            raise ValidationError({"code": str(exc)}) from exc
+        return oauth.organization, [], connection
 
     adapter = adapter_for(oauth.platform, mock=oauth.mock)
     try:
@@ -122,7 +152,7 @@ def complete_connection(
                 "simulation": account.is_mock,
             },
         )
-    return oauth.organization, accounts
+    return oauth.organization, accounts, None
 
 
 def disconnect(account: SocialAccount, *, actor: Any) -> None:

@@ -34,15 +34,18 @@ def _status_for(decision: engine.Decision) -> str:
     }[decision.outcome]
 
 
-def _request_for(action: AutomationAction) -> engine.ActionRequest:
+def _request_for(action: AutomationAction, membership: Any = None) -> engine.ActionRequest:
     return engine.ActionRequest(
         action_type=action.action_type,
         initiated_by=action.initiated_by,
         item=action.content_item,
         account=action.social_account,
         scheduled_for=action.scheduled_for,
+        membership=membership,
         human_approved=action.approved_by_id is not None,
         action_id=action.pk,
+        ad_campaign=action.ad_campaign,
+        payload=action.payload or {},
     )
 
 
@@ -67,7 +70,24 @@ POLICY_FIELDS = (
     "max_automated_posts_per_day",
     "auto_generate_drafts",
     "max_generated_drafts_per_week",
+    "ads_writes_paused",
+    "ads_automation_enabled",
+    "ads_allow_automated_pause",
+    "ads_allow_automated_budget_changes",
+    "ads_allow_automated_activation",
+    "ads_auto_pause_on_spend_limit",
+    "ads_limit_currency",
+    "ads_max_daily_budget_per_campaign",
+    "ads_max_total_daily_budget",
+    "ads_monthly_spend_limit",
+    "ads_max_budget_increase_percent",
 )
+
+
+def _jsonable(value: Any) -> Any:
+    from decimal import Decimal
+
+    return str(value) if isinstance(value, Decimal) else value
 
 
 @transaction.atomic
@@ -76,7 +96,7 @@ def update_policy(org: Organization, *, actor: Any, changes: dict[str, Any]) -> 
     diff: dict[str, Any] = {}
     for f in POLICY_FIELDS:
         if f in changes and getattr(policy, f) != changes[f]:
-            diff[f] = {"from": getattr(policy, f), "to": changes[f]}
+            diff[f] = {"from": _jsonable(getattr(policy, f)), "to": _jsonable(changes[f])}
             setattr(policy, f, changes[f])
     if "allowed_accounts" in changes:
         new = sorted(str(a.pk) for a in changes["allowed_accounts"])
@@ -243,6 +263,8 @@ def execute_action(action: AutomationAction) -> AutomationAction:
         action.status = A.EXECUTING
         action.attempts += 1
         action.save(update_fields=["status", "attempts", "updated_at"])
+    if action.action_type in engine.AD_ACTIONS:
+        return _execute_ad_action(action)
     try:
         if action.action_type == AutomationAction.ActionType.PUBLISH_CONTENT:
             from apps.publishing.services import request_publish
@@ -297,10 +319,142 @@ def execute_action(action: AutomationAction) -> AutomationAction:
     return action
 
 
+def _execute_ad_action(action: AutomationAction) -> AutomationAction:
+    from apps.ads.execution import ExecutionFailed, execute
+
+    try:
+        execute(action)
+        action.status = A.SUCCEEDED
+        action.executed_at = timezone.now()
+        action.error = ""
+    except ExecutionFailed as exc:
+        action.status = A.FAILED
+        action.error = str(exc)[:500]
+    except Exception:  # recorded and surfaced; never silently retried
+        logger.exception("Ad action crashed", extra={"action": str(action.pk)})
+        action.status = A.FAILED
+        action.error = "The change could not be completed. Check the campaign on Meta."
+    action.save()
+    audit.record(
+        "automation.action_executed"
+        if action.status == A.SUCCEEDED
+        else "automation.action_failed",
+        organization=action.organization,
+        target=action,
+        system=True,
+        metadata={"type": action.action_type, "error": action.error},
+    )
+    if action.status == A.FAILED:
+        from apps.notifications.models import Notification
+        from apps.notifications.services import notify_members_with
+
+        notify_members_with(
+            action.organization,
+            Perm.ADS_MANAGE,
+            kind=Notification.Kind.AUTOMATION,
+            title="An ad change failed",
+            body=action.error,
+            link=f"/o/{action.organization_id}/ads/campaigns/{action.ad_campaign_id}",
+        )
+    return action
+
+
+def propose_ad_action(
+    org: Organization,
+    *,
+    campaign: Any,
+    action_type: str,
+    initiated_by: str,
+    workflow: str,
+    payload: dict[str, Any] | None = None,
+    membership: Membership | None = None,
+) -> AutomationAction:
+    """Record an ad change and let the policy decide. People's requests execute right away
+    when allowed (or are refused with reasons); the system's may wait for approval.
+
+    Only one pending or running action of a type per campaign: duplicates return it."""
+    from apps.ads.models import AdCampaign
+
+    with transaction.atomic():
+        AdCampaign.objects.select_for_update().get(pk=campaign.pk)  # serialize per campaign
+        existing = AutomationAction.objects.filter(
+            organization=org,
+            ad_campaign=campaign,
+            action_type=action_type,
+            status__in=[*PENDING, A.EXECUTING],
+        ).first()
+        if existing is not None:
+            return existing
+        n = AutomationAction.objects.filter(ad_campaign=campaign, action_type=action_type).count()
+        action = AutomationAction.objects.create(
+            organization=org,
+            action_type=action_type,
+            status=A.DEFERRED,
+            workflow=workflow,
+            initiated_by=initiated_by,
+            ad_campaign=campaign,
+            payload=payload or {},
+            decision="pending",
+            policy_version=0,
+            mode_at_decision="",
+            idempotency_key=f"{action_type}:{campaign.pk}:{n + 1}",
+            approved_by=membership.user if membership else None,
+            approved_at=timezone.now() if membership else None,
+        )
+        decision = engine.evaluate(org, _request_for(action, membership))
+        _apply(action, decision)
+        if decision.outcome in (engine.REJECT, engine.CANCEL):
+            action.error = "; ".join(decision.reasons)[:500]
+        action.save()
+        audit.record(
+            "automation.action_evaluated",
+            organization=org,
+            actor=membership.user if membership else None,
+            target=action,
+            system=membership is None,
+            metadata={
+                "type": action_type,
+                "decision": decision.outcome,
+                "reasons": decision.reasons,
+                "policy_version": decision.policy_version,
+                "payload": action.payload,
+            },
+        )
+    if decision.outcome == engine.EXECUTE:
+        return execute_action(action)
+    if decision.outcome == engine.AWAIT_APPROVAL:
+        from apps.notifications.models import Notification
+        from apps.notifications.services import notify_members_with
+
+        notify_members_with(
+            org,
+            Perm.AUTOMATION_APPROVE,
+            kind=Notification.Kind.AUTOMATION,
+            title="An ad change needs your approval",
+            body="; ".join(decision.reasons)[:1000],
+            link=f"/o/{org.pk}/automation",
+        )
+    return action
+
+
+def cancel_pending_for_ad_account(account: Any, *, actor: Any, reason: str) -> int:
+    count = 0
+    for action in AutomationAction.objects.filter(
+        ad_campaign__ad_account=account, status__in=PENDING
+    ):
+        action.status = A.CANCELLED
+        action.error = reason[:500]
+        action.save(update_fields=["status", "error", "updated_at"])
+        count += 1
+    return count
+
+
 @transaction.atomic
 def approve_action(action: AutomationAction, *, approver: Membership) -> AutomationAction:
     if not approver.has_perm(Perm.AUTOMATION_APPROVE):
         raise Conflict("Your role can't approve automated actions.")
+    if action.action_type in engine.AD_ACTIONS and not approver.has_perm(Perm.ADS_MANAGE):
+        raise Conflict("Your role can't approve ad changes.")
     action = AutomationAction.objects.select_for_update().get(pk=action.pk)
     if action.status not in (A.AWAITING_APPROVAL, A.DEFERRED):
         raise Conflict("Only waiting actions can be approved.")

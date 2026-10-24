@@ -13,6 +13,10 @@ Based on Meta's documentation as reviewed on 2026-10-20 (Graph API v26.0):
   Development mode only works for people with a role on the Meta app; production use
   requires Meta App Review of these permissions.
 
+Connecting goes through ``apps.meta`` (Meta login, then the person selects Pages); this
+adapter publishes and reads insights for a selected Page. All HTTP goes through
+``apps.meta.graph.GraphClient`` (appsecret_proof, throttling, error normalization).
+
 Status: code complete and covered by tests with Graph API responses stubbed. Not yet
 exercised against the real Graph API (no Meta app credentials configured).
 """
@@ -20,7 +24,6 @@ exercised against the real Graph API (no Meta app credentials configured).
 import json
 from datetime import datetime
 from typing import Any
-from urllib.parse import urlencode
 
 import httpx
 
@@ -28,25 +31,13 @@ from .base import (
     AccountCredentials,
     AccountRef,
     AuthorizationFailed,
-    ContentRejected,
     MetricValue,
-    NotConfigured,
     PlatformCapabilities,
     PublishRequest,
     PublishResult,
-    RateLimited,
-    ReauthRequired,
-    SocialError,
-    TransientError,
     UncertainOutcome,
     Unsupported,
 )
-
-SCOPES = ("pages_show_list", "pages_manage_posts", "pages_read_engagement", "read_insights")
-_RATE_LIMIT_CODES = {4, 17, 32, 613, 80001}
-_TRANSIENT_CODES = {1, 2}
-_AUTH_CODES = {190, 102}
-_PERMISSION_CODES = {10, 200, 299}
 
 
 class FacebookAdapter:
@@ -76,136 +67,127 @@ class FacebookAdapter:
         timeout_seconds: float = 20.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
-        self.app_id = app_id
-        self.app_secret = app_secret
-        self.graph = f"https://graph.facebook.com/{graph_version}"
-        self.dialog = f"https://www.facebook.com/{graph_version}/dialog/oauth"
-        self._client = httpx.Client(timeout=timeout_seconds, transport=transport)
+        from apps.meta.client import MetaAccountClient
+        from apps.meta.graph import GraphClient
+
+        self._graph = GraphClient(
+            app_id=app_id,
+            app_secret=app_secret,
+            version=graph_version,
+            timeout_seconds=timeout_seconds,
+            transport=transport,
+        )
+        self._accounts = MetaAccountClient(self._graph)
 
     def is_configured(self) -> bool:
-        return bool(self.app_id and self.app_secret)
+        return self._graph.is_configured()
+
+    # Used by the Instagram adapter, which shares the Meta app and login dialog.
+    @property
+    def app_id(self) -> str | None:
+        return self._graph.app_id
+
+    @property
+    def app_secret(self) -> str | None:
+        return self._graph.app_secret
+
+    @property
+    def dialog(self) -> str:
+        return self._graph.dialog
 
     def _require_config(self) -> None:
-        if not self.is_configured():
-            raise NotConfigured("META_APP_ID and META_APP_SECRET are not set.")
-
-    # --- HTTP -----------------------------------------------------------------
+        self._graph.require_config()
 
     def _request(
-        self, method: str, path: str, *, write: bool = False, **kwargs: Any
+        self,
+        method: str,
+        path: str,
+        *,
+        token: str | None = None,
+        write: bool = False,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        files: dict[str, Any] | None = None,
+        page: str | None = None,
     ) -> dict[str, Any]:
-        url = path if path.startswith("http") else f"{self.graph}/{path.lstrip('/')}"
-        try:
-            response = self._client.request(method, url, **kwargs)
-        except httpx.TimeoutException as exc:
-            # A write that timed out may still have been applied by Meta.
-            if write:
-                raise UncertainOutcome("Timed out waiting for Facebook") from exc
-            raise TransientError("Timed out waiting for Facebook") from exc
-        except httpx.TransportError as exc:
-            if write and not isinstance(exc, httpx.ConnectError):
-                raise UncertainOutcome("Connection dropped while publishing") from exc
-            raise TransientError("Could not reach Facebook") from exc
-        trace = response.headers.get("x-fb-trace-id", "")
-        try:
-            body: dict[str, Any] = response.json()
-        except json.JSONDecodeError:
-            body = {}
-        if response.status_code >= 500:
-            raise TransientError(f"Facebook returned {response.status_code}", request_id=trace)
-        if "error" in body or response.status_code >= 400:
-            raise _normalize(body.get("error", {}), response.status_code, trace)
-        return body
+        # Subclasses (Instagram) may pass the token inside params/data; lift it out so the
+        # client adds appsecret_proof and never sends it twice.
+        if token is None:
+            for source in (params, data):
+                if source and "access_token" in source:
+                    source = dict(source)
+                    token = str(source.pop("access_token"))
+                    if params is not None and "access_token" in params:
+                        params = source
+                    else:
+                        data = source
+                    break
+        return self._graph.request(
+            method,
+            path,
+            token=token,
+            params=params,
+            data=data,
+            files=files,
+            write=write,
+            throttle_key=f"page:{page}" if page else None,
+        )
 
     # --- Authorization -------------------------------------------------------------
+    # The app connects Facebook through apps.meta (login, then Page selection). These
+    # implement the adapter contract for completeness and reuse the same Meta client.
 
     def authorization_url(self, *, state: str, redirect_uri: str, code_challenge: str) -> str:
-        self._require_config()
-        params = {
-            "client_id": self.app_id,
-            "redirect_uri": redirect_uri,
-            "state": state,
-            "response_type": "code",
-            "scope": ",".join(SCOPES),
-        }
-        return f"{self.dialog}?{urlencode(params)}"
+        return self._accounts.authorization_url(state=state, redirect_uri=redirect_uri)
 
     def complete_authorization(
         self, *, code: str, redirect_uri: str, code_verifier: str
     ) -> list[AccountCredentials]:
-        self._require_config()
-        try:
-            short = self._request(
-                "GET",
-                "oauth/access_token",
-                params={
-                    "client_id": self.app_id,
-                    "redirect_uri": redirect_uri,
-                    "client_secret": self.app_secret,
-                    "code": code,
-                },
-            )
-            long_lived = self._request(
-                "GET",
-                "oauth/access_token",
-                params={
-                    "grant_type": "fb_exchange_token",
-                    "client_id": self.app_id,
-                    "client_secret": self.app_secret,
-                    "fb_exchange_token": short["access_token"],
-                },
-            )
-            pages = self._request(
-                "GET",
-                "me/accounts",
-                params={
-                    "fields": "id,name,access_token,tasks,category,link",
-                    "access_token": long_lived["access_token"],
-                },
-            )
-        except (ContentRejected, ReauthRequired, KeyError) as exc:
-            raise AuthorizationFailed("Facebook did not complete the authorization.") from exc
-        accounts = []
-        for page in pages.get("data", []):
-            tasks = set(page.get("tasks", []))
-            if not tasks & {"CREATE_CONTENT", "MANAGE"}:
-                continue  # the person can't publish to this Page
-            accounts.append(
-                AccountCredentials(
-                    external_id=str(page["id"]),
-                    name=page.get("name", "Facebook Page"),
-                    username="",
-                    account_type="facebook_page",
-                    access_token=page["access_token"],
-                    scopes=SCOPES,
-                    metadata={"category": page.get("category", ""), "link": page.get("link", "")},
-                )
-            )
-        if not accounts:
+        from apps.meta import permissions
+
+        user = self._accounts.exchange_code(code=code, redirect_uri=redirect_uri)
+        pages = [p for p in self._accounts.pages(user.token, with_tokens=True) if p.can_publish]
+        if not pages:
             raise AuthorizationFailed(
                 "No Facebook Pages you can publish to were shared with this app."
             )
-        return accounts
+        scopes = permissions.FEATURE_PERMISSIONS[permissions.PAGES_FEATURE]
+        return [
+            AccountCredentials(
+                external_id=p.id,
+                name=p.name,
+                username="",
+                account_type="facebook_page",
+                access_token=p.access_token,
+                scopes=scopes,
+                metadata={"category": p.category, "link": p.link},
+            )
+            for p in pages
+        ]
 
     # --- Publishing ------------------------------------------------------------------
 
     def publish(self, account: AccountRef, request: PublishRequest) -> PublishResult:
         if request.format not in self.capabilities.publish_formats:
             raise Unsupported(f"{request.format} posts aren't supported for Facebook yet.")
-        token = {"access_token": account.access_token}
+        token = account.access_token
         page = account.external_id
         if not request.media:
             fields = {"message": request.text, **({"link": request.link} if request.link else {})}
-            result = self._request("POST", f"{page}/feed", write=True, data={**fields, **token})
+            result = self._request(
+                "POST", f"{page}/feed", token=token, write=True, data=fields, page=page
+            )
             return self._result(result)
         if len(request.media) == 1:
             media = request.media[0]
             result = self._request(
                 "POST",
                 f"{page}/photos",
+                token=token,
                 write=True,
-                data={"message": request.text, "published": "true", **token},
+                data={"message": request.text, "published": "true"},
                 files={"source": (media.filename, media.content, media.content_type)},
+                page=page,
             )
             return self._result({"id": result.get("post_id") or result.get("id")})
         # Multi-photo: upload unpublished photos, then attach them to one feed post.
@@ -214,14 +196,18 @@ class FacebookAdapter:
             uploaded = self._request(
                 "POST",
                 f"{page}/photos",
-                data={"published": "false", **token},
+                token=token,
+                data={"published": "false"},
                 files={"source": (media.filename, media.content, media.content_type)},
+                page=page,
             )
             media_ids.append(uploaded["id"])
-        data: dict[str, str] = {"message": request.text, **token}
+        data: dict[str, str] = {"message": request.text}
         for i, media_id in enumerate(media_ids):
             data[f"attached_media[{i}]"] = json.dumps({"media_fbid": media_id})
-        return self._result(self._request("POST", f"{page}/feed", write=True, data=data))
+        return self._result(
+            self._request("POST", f"{page}/feed", token=token, write=True, data=data, page=page)
+        )
 
     def _result(self, body: dict[str, Any]) -> PublishResult:
         post_id = str(body.get("id", ""))
@@ -237,12 +223,13 @@ class FacebookAdapter:
         body = self._request(
             "GET",
             f"{account.external_id}/posts",
+            token=account.access_token,
             params={
                 "fields": "id,message,permalink_url,created_time",
                 "since": int(since.timestamp()),
                 "limit": 25,
-                "access_token": account.access_token,
             },
+            page=account.external_id,
         )
         for post in body.get("data", []):
             if (post.get("message") or "").strip() == text.strip():
@@ -264,7 +251,9 @@ class FacebookAdapter:
         body = self._request(
             "GET",
             f"{external_post_id}/insights",
-            params={"metric": ",".join(self._METRICS), "access_token": account.access_token},
+            token=account.access_token,
+            params={"metric": ",".join(self._METRICS)},
+            page=account.external_id,
         )
         found: dict[str, float | None] = {}
         for entry in body.get("data", []):
@@ -275,17 +264,3 @@ class FacebookAdapter:
             found[entry.get("name", "")] = float(raw) if isinstance(raw, int | float) else None
         # Metrics the platform did not return stay None (missing), never 0.
         return [MetricValue(key, found.get(name)) for name, key in self._METRICS.items()]
-
-
-def _normalize(error: dict[str, Any], status: int, trace: str) -> SocialError:
-    code = error.get("code")
-    message = str(error.get("message") or f"Facebook error {status}")[:300]
-    if code in _AUTH_CODES or (error.get("type") == "OAuthException" and code == 190):
-        return ReauthRequired(message, request_id=trace)
-    if code in _PERMISSION_CODES:
-        return ReauthRequired(f"Missing permission: {message}", request_id=trace)
-    if code in _RATE_LIMIT_CODES or status == 429:
-        return RateLimited(message, request_id=trace)
-    if code in _TRANSIENT_CODES or error.get("is_transient"):
-        return TransientError(message, request_id=trace)
-    return ContentRejected(message, request_id=trace)

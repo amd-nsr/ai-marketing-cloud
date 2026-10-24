@@ -10,14 +10,13 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from apps.content.models import Platform
 from apps.organizations.api import OrganizationScopedViewSet
 from apps.organizations.roles import Perm
 
 from . import services
 from .adapters.base import NotConfigured
 from .adapters.registry import real_adapter
-from .models import SocialAccount
+from .models import SocialAccount, SocialPlatform
 
 
 class SocialAccountSerializer(serializers.ModelSerializer[SocialAccount]):
@@ -50,7 +49,7 @@ class SocialAccountSerializer(serializers.ModelSerializer[SocialAccount]):
 
 
 class ConnectSerializer(serializers.Serializer[None]):
-    platform = serializers.ChoiceField(choices=Platform.choices)
+    platform = serializers.ChoiceField(choices=SocialPlatform.choices)
     simulation = serializers.BooleanField(default=False)
 
 
@@ -122,7 +121,7 @@ class SocialAccountViewSet(
     @extend_schema(responses=_platform)
     @action(detail=False, methods=["get"])
     def platforms(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        return Response([_platform_info(p) for p in Platform.values])
+        return Response([_platform_info(p) for p in SocialPlatform.values])
 
     @extend_schema(
         request=ConnectSerializer,
@@ -156,17 +155,21 @@ class OAuthCallbackView(APIView):
             {
                 "organization_id": serializers.UUIDField(),
                 "accounts": SocialAccountSerializer(many=True),
+                "meta_connection_id": serializers.UUIDField(allow_null=True),
             },
         ),
     )
     def post(self, request: Request) -> Response:
         payload = CallbackSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
-        org, accounts = services.complete_connection(user=request.user, **payload.validated_data)
+        org, accounts, meta_connection = services.complete_connection(
+            user=request.user, **payload.validated_data
+        )
         return Response(
             {
                 "organization_id": org.pk,
                 "accounts": SocialAccountSerializer(accounts, many=True).data,
+                "meta_connection_id": meta_connection.pk if meta_connection else None,
             },
             status=status.HTTP_200_OK,
         )

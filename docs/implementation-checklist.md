@@ -1,18 +1,18 @@
 # Implementation checklist
 
 What has been built, tracked against the MVP scope in `docs/master-plan.md`.
-Last updated: 2026-10-22.
+Last updated: 2026-10-24.
 
 **How to read it**
 - 🟢 Implemented and verified locally (automated tests and/or a live browser check).
 - 🟡 Implemented, but not yet proven against the real external service or environment.
 - 🔴 Not implemented yet.
 
-Totals: 🟢 70 · 🟡 6 · 🔴 18 (🔴 includes 8 external pilot-setup steps).
+Totals: 🟢 86 · 🟡 8 · 🔴 22 (🔴 includes 8 external pilot-setup steps).
 
-Status at a glance: Phases 0–12 are done in code. Backend 292 tests, frontend 35 tests and a
-Playwright pilot journey all pass locally. Nothing has run in GitHub CI yet: there are no
-commits or remote.
+Status at a glance: Phases 0–12 and the Meta integration (Pages + Ads) are done in code.
+Backend, frontend and the Playwright pilot journey pass locally; real Meta APIs are
+unverified.
 
 ---
 
@@ -124,18 +124,38 @@ commits or remote.
 
 ## Phase 12 — Pilot readiness
 - 🟢 Playwright E2E of the full pilot journey (passes against the dev server and the production build)
-- 🟡 E2E job in CI — not yet run on GitHub
+- 🟢 E2E job in CI — passed on GitHub (first run, 2026-10-22)
 - 🟢 Known limitations (`docs/product/known-limitations.md`)
 - 🟢 Pilot checklist (`docs/product/pilot-checklist.md`)
+
+## Meta integration — Facebook Pages and Facebook Ads (ADR 0014)
+- 🟢 Shared Graph client: version pinning, `appsecret_proof`, pagination, usage-header throttling, error mapping
+- 🟢 Meta login record: encrypted user token, granted vs declined permissions, discovered Pages and ad accounts
+- 🟢 Page and ad-account selection (nothing connected automatically); read-only Pages refused
+- 🟢 Disconnect revokes access on Meta; token-expiry warnings; permission-removal handling
+- 🟢 Deauthorize and data-deletion callbacks (signed requests) with public status page
+- 🟢 Webhooks with signature verification (ad account changes → sync; permission changes → refresh)
+- 🟢 Ad account sync: campaigns, ad sets, ads, daily insights (missing ≠ 0), partial-failure tracking
+- 🟢 Campaign drafts (manual and AI), deterministic validation, approval per revision
+- 🟢 Create on Meta (all paused), activate, pause, budget change — only via the policy engine
+- 🟢 Resumable creation (no duplicates after partial failure); lost responses recovered by name tag
+- 🟢 Hard spend limits, currency match, spend-data freshness, budget-increase cap, ads kill switch
+- 🟢 Automation for ads: separate switches, approval in semi-automatic, never creates campaigns
+- 🟢 Deterministic ad recommendations (spend guard, no-click pause, budget-limited winner)
+- 🟢 UI: Meta logins, selection page, Ads overview, campaign page, advertising limits, action queue
+- 🟡 Real Graph/Marketing API behaviour — unverified (no Meta app, no App Review, no business verification)
+- 🔴 Video, carousel ads, interest targeting, lifetime budgets, ad-set budgets
+- 🔴 Instagram on the shared Meta connection
 
 ---
 
 ## Remaining before the pilot (external setup)
 Details in `docs/product/pilot-checklist.md`.
-- 🔴 Initial commit, push to a remote, and green CI on GitHub
+- 🟡 Pushed to GitHub; CI green except the dependency-audit and image-build jobs (not investigated yet)
 - 🔴 Production environment provisioned (managed Postgres with PITR, Redis, S3, secrets, TLS)
 - 🔴 Anthropic API key configured; real-model quality and cost check
 - 🔴 Meta app created; a real Facebook Page post published and verified
+- 🔴 Meta App Review, business verification and Advanced Access for ads permissions; real ads validation checklist run
 - 🔴 Transactional email provider configured and tested
 - 🔴 Restore drill on the managed database
 - 🔴 Uptime monitoring and log alerts

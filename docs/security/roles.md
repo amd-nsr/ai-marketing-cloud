@@ -26,6 +26,9 @@ permissions to hide controls a member cannot use.
 | `automation.approve` — approve automated actions | ✓ | ✓ | | | |
 | `usage.view` — AI usage and quotas | ✓ | ✓ | ✓ | ✓ | |
 | `audit.view` — audit log | ✓ | ✓ | | | |
+| `ads.view` — ad accounts, campaigns, ad performance | ✓ | ✓ | ✓ | ✓ | |
+| `ads.draft` — create and edit campaign drafts (incl. AI drafts) | ✓ | ✓ | ✓ | | |
+| `ads.manage` — approve drafts, create on Meta, activate, pause, change budgets, connect ad accounts | ✓ | ✓ | | | |
 
 Additional rules (in `organizations/services.py`):
 

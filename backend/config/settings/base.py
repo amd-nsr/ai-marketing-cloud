@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.analytics",
     "apps.operations",
+    "apps.meta",
+    "apps.ads",
 ]
 
 MIDDLEWARE = [
@@ -195,6 +197,20 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 MAX_IMAGE_UPLOAD_BYTES = env.int("MAX_IMAGE_UPLOAD_BYTES", default=10 * 1024 * 1024)
+# Content studio media (video/audio library uploads, video rendering).
+MAX_MEDIA_UPLOAD_BYTES = env.int("MAX_MEDIA_UPLOAD_BYTES", default=100 * 1024 * 1024)
+MAX_MEDIA_DURATION_SECONDS = env.int("MAX_MEDIA_DURATION_SECONDS", default=600)
+FFMPEG_BINARY = env("FFMPEG_BINARY", default="ffmpeg")
+FFPROBE_BINARY = env("FFPROBE_BINARY", default="ffprobe")
+VIDEO_RENDER_TIMEOUT_SECONDS = env.int("VIDEO_RENDER_TIMEOUT_SECONDS", default=600)
+#: Font used for video text overlays and subtitles (any TTF/OTF path).
+VIDEO_FONT_FILE = env(
+    "VIDEO_FONT_FILE", default="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+)
+# Image generation is a separate capability from text AI: "none" (default, disabled),
+# or "mock" (labelled placeholder images for development). See docs/decisions/0015.
+IMAGE_PROVIDER = env("IMAGE_PROVIDER", default="none")
+IMAGE_COST_PER_IMAGE_USD = env.float("IMAGE_COST_PER_IMAGE_USD", default=0.0)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 
@@ -232,6 +248,19 @@ AI_MODEL_PRICING: dict[str, dict[str, float]] = {
 META_APP_ID = env("META_APP_ID", default=None)
 META_APP_SECRET = env("META_APP_SECRET", default=None)
 META_GRAPH_VERSION = env("META_GRAPH_VERSION", default="v26.0")
+#: Request the Marketing API permissions (ads_read, ads_management) during Meta login.
+#: Off by default: only ask for what the deployment uses (App Review covers each scope).
+META_ADS_ENABLED = env.bool("META_ADS_ENABLED", default=False)
+#: Shared secret Meta echoes back when verifying the webhook subscription.
+META_WEBHOOK_VERIFY_TOKEN = env("META_WEBHOOK_VERIFY_TOKEN", default=None)
+#: Throttle Meta calls once any reported usage reaches this percentage.
+META_USAGE_THROTTLE_PERCENT = env.int("META_USAGE_THROTTLE_PERCENT", default=90)
+#: Warn (and later require reconnection) when a Meta user token expires within N days.
+META_TOKEN_WARNING_DAYS = env.int("META_TOKEN_WARNING_DAYS", default=7)
+#: Days of daily ad insights fetched per sync.
+ADS_INSIGHTS_DAYS = env.int("ADS_INSIGHTS_DAYS", default=30)
+#: Spend-affecting ad changes are refused if spend wasn't synced within this many hours.
+ADS_SPEND_DATA_MAX_AGE_HOURS = env.int("ADS_SPEND_DATA_MAX_AGE_HOURS", default=24)
 TIKTOK_CLIENT_KEY = env("TIKTOK_CLIENT_KEY", default=None)
 TIKTOK_CLIENT_SECRET = env("TIKTOK_CLIENT_SECRET", default=None)
 SOCIAL_HTTP_TIMEOUT_SECONDS = env.float("SOCIAL_HTTP_TIMEOUT_SECONDS", default=30.0)
@@ -316,6 +345,13 @@ SPECTACULAR_SETTINGS: dict[str, Any] = {
         # Plans and content versions share the same provenance values.
         "AuthorshipSourceEnum": "apps.content.models.ContentVersion.Source",
         "PlatformEnum": ["instagram", "facebook", "tiktok"],
+        "SocialPlatformEnum": "apps.social.models.SocialPlatform",
+        "ContentPlatformEnum": "apps.content.models.Platform",
+        "AdCampaignSourceEnum": "apps.ads.models.AdCampaign.Source",
+        "AdCampaignStateEnum": "apps.ads.models.AdCampaign.State",
+        "AdObjectiveEnum": "apps.ads.models.AdCampaign.Objective",
+        "AdSyncStatusEnum": "apps.ads.models.AdSyncRun.Status",
+        "MetaConnectionStatusEnum": "apps.meta.models.MetaConnection.Status",
     },
 }
 
@@ -343,6 +379,9 @@ CELERY_BEAT_SCHEDULE = {
     "automation-reevaluate": {"task": "automation.reevaluate", "schedule": 5 * 60.0},
     "operations-heartbeat": {"task": "operations.heartbeat", "schedule": 60.0},
     "operations-sweep": {"task": "operations.sweep", "schedule": 5 * 60.0},
+    "meta-check-connections": {"task": "meta.check_connections", "schedule": 24 * 3600.0},
+    "ads-sync": {"task": "ads.sync_due", "schedule": 30 * 60.0},
+    "ads-optimize": {"task": "ads.optimize", "schedule": 60 * 60.0},
 }
 
 # --- Operations ------------------------------------------------------------

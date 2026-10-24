@@ -75,6 +75,13 @@ test("pilot journey with simulated AI and social accounts", async ({ page }) => 
       .locator("div.rounded-xl")
       .filter({ has: page.getByRole("heading", { name: "Facebook Page", exact: true }) });
     await facebook.getByRole("button", { name: "Add simulation account" }).click();
+    // A Meta login lists its Pages; nothing is connected until one is chosen.
+    await expect(page.getByRole("heading", { name: "Simulated Meta login" })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: /Simulated Read-only Page/ })).toBeDisabled();
+    await page.getByRole("checkbox", { name: /Simulated Café Page/ }).check();
+    await page.getByRole("button", { name: "Connect selected Pages" }).click();
+    await expect(page.getByText("1 Page connected.")).toBeVisible();
+    await nav("Social accounts");
     await expect(page.getByText("Simulation accounts behave like real ones")).toBeVisible();
   });
 

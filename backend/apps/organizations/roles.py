@@ -40,6 +40,9 @@ class Perm:
     AUTOMATION_MANAGE = "automation.manage"
     AUTOMATION_APPROVE = "automation.approve"
     USAGE_VIEW = "usage.view"
+    ADS_VIEW = "ads.view"
+    ADS_DRAFT = "ads.draft"
+    ADS_MANAGE = "ads.manage"
     AUDIT_VIEW = "audit.view"
 
 
@@ -61,7 +64,12 @@ _VIEWER = frozenset(
     }
 )
 
-_ANALYST = _VIEWER | {Perm.MEMBERS_VIEW, Perm.RECOMMENDATIONS_MANAGE, Perm.USAGE_VIEW}
+_ANALYST = _VIEWER | {
+    Perm.MEMBERS_VIEW,
+    Perm.RECOMMENDATIONS_MANAGE,
+    Perm.USAGE_VIEW,
+    Perm.ADS_VIEW,
+}
 
 _EDITOR = _VIEWER | {
     Perm.MEMBERS_VIEW,
@@ -72,6 +80,8 @@ _EDITOR = _VIEWER | {
     Perm.CONTENT_SUBMIT,
     Perm.SOCIAL_VIEW,
     Perm.USAGE_VIEW,
+    Perm.ADS_VIEW,
+    Perm.ADS_DRAFT,
 }
 
 ROLE_PERMISSIONS: dict[str, frozenset[str]] = {

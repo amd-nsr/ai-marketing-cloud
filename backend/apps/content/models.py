@@ -12,6 +12,10 @@ class Platform(models.TextChoices):
     INSTAGRAM = "instagram", "Instagram"
     FACEBOOK = "facebook", "Facebook"
     TIKTOK = "tiktok", "TikTok"
+    #: Channels without a publishing integration: content is written, approved and
+    #: exported (copied) here, then sent with the business's own blog or email tool.
+    BLOG = "blog", "Blog"
+    EMAIL = "email", "Email"
 
 
 class Format(models.TextChoices):
@@ -20,6 +24,8 @@ class Format(models.TextChoices):
     REEL = "reel", "Reel"
     STORY = "story", "Story"
     SHORT_VIDEO = "short_video", "Short video"
+    ARTICLE = "article", "Article"
+    NEWSLETTER = "newsletter", "Newsletter"
 
 
 class ContentItem(OrganizationOwnedModel):
@@ -84,6 +90,9 @@ class ContentVersion(OrganizationOwnedModel):
     slides = models.JSONField(default=list, blank=True)  # [{title, body}]
     creative_brief = models.TextField(blank=True, max_length=4000)
     alt_text = models.CharField(max_length=1000, blank=True)
+    #: Editable source of the visual or video (see documents.py); {} = none. Rendered
+    #: outputs are ContentAssets with source="render", never stored here.
+    document = models.JSONField(default=dict, blank=True)
     source = models.CharField(max_length=16, choices=Source.choices, default=Source.MANUAL)
     ai_run = models.ForeignKey(
         "ai.AIWorkflowRun", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
@@ -114,7 +123,22 @@ def content_asset_path(instance: "ContentAsset", filename: str) -> str:
 
 
 class ContentAsset(OrganizationOwnedModel):
+    """Media attached to an item for publishing: an upload, or a render of its document."""
+
+    class Source(models.TextChoices):
+        UPLOAD = "upload", "Uploaded"
+        RENDER = "render", "Rendered from the editable design or video"
+
     item = models.ForeignKey(ContentItem, on_delete=models.CASCADE, related_name="assets")
+    source = models.CharField(max_length=8, choices=Source.choices, default=Source.UPLOAD)
+    #: For renders: the version and page (or "video") rendered, and the hash of that
+    #: page's source at render time. A hash mismatch means the render is stale.
+    version = models.ForeignKey(
+        "ContentVersion", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    page_id = models.CharField(max_length=40, blank=True)
+    source_hash = models.CharField(max_length=64, blank=True)
+    duration_seconds = models.FloatField(null=True, blank=True)
     file = models.FileField(upload_to=content_asset_path, max_length=300)
     original_filename = models.CharField(max_length=255, blank=True)
     content_type = models.CharField(max_length=100)
@@ -170,3 +194,108 @@ class Approval(OrganizationOwnedModel):
             )
         ]
         indexes = [models.Index(fields=["organization", "status", "-created_at"])]
+
+
+def library_asset_path(instance: "LibraryAsset", filename: str) -> str:
+    ext = PurePosixPath(filename).suffix.lower()
+    return f"orgs/{instance.organization_id}/library/{uuid.uuid4().hex}{ext}"
+
+
+class LibraryAsset(OrganizationOwnedModel):
+    """Reusable organization media: uploads and AI-generated images.
+
+    Designs and video projects reference these by id (documents.AssetRef), so they are
+    never edited in place; deleting one that a current document uses is refused.
+    Logos and approved brand images stay in the brand kit (brand.BrandAsset).
+    """
+
+    class Kind(models.TextChoices):
+        IMAGE = "image", "Image"
+        VIDEO = "video", "Video"
+        AUDIO = "audio", "Audio"
+
+    class Source(models.TextChoices):
+        UPLOAD = "upload", "Uploaded"
+        AI_GENERATED = "ai_generated", "AI-generated"
+
+    kind = models.CharField(max_length=8, choices=Kind.choices)
+    source = models.CharField(max_length=16, choices=Source.choices, default=Source.UPLOAD)
+    title = models.CharField(max_length=160, blank=True)
+    tags = models.JSONField(default=list, blank=True)
+    file = models.FileField(upload_to=library_asset_path, max_length=300)
+    original_filename = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=100)
+    size_bytes = models.PositiveBigIntegerField()
+    width = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    duration_seconds = models.FloatField(null=True, blank=True)
+    sha256 = models.CharField(max_length=64)
+    #: For AI images: {prompt, provider, model}. Never contains credentials.
+    generation = models.JSONField(default=dict, blank=True)
+    is_mock = models.BooleanField(default=False)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["organization", "kind", "-created_at"])]
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        storage, name = self.file.storage, self.file.name
+        result = super().delete(*args, **kwargs)
+        if name:
+            storage.delete(name)
+        return result
+
+
+class ContentTemplate(OrganizationOwnedModel):
+    """A reusable starting document saved by the organization.
+
+    Built-in starter templates live in code (templates.py) and are not stored.
+    """
+
+    name = models.CharField(max_length=120)
+    description = models.CharField(max_length=300, blank=True)
+    kind = models.CharField(max_length=10)  # design | carousel | video
+    document = models.JSONField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["name"]
+        indexes = [models.Index(fields=["organization", "kind"])]
+
+
+class RenderJob(OrganizationOwnedModel):
+    """A background render of a version's video project into a publishable file."""
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        RUNNING = "running", "Rendering"
+        SUCCEEDED = "succeeded", "Done"
+        FAILED = "failed", "Failed"
+
+    item = models.ForeignKey(ContentItem, on_delete=models.CASCADE, related_name="render_jobs")
+    version = models.ForeignKey(ContentVersion, on_delete=models.CASCADE, related_name="+")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.QUEUED)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    error_code = models.CharField(max_length=60, blank=True)
+    error_message = models.CharField(max_length=500, blank=True)
+    output = models.ForeignKey(
+        ContentAsset, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["organization", "item", "-created_at"])]
+
+    @property
+    def is_terminal(self) -> bool:
+        return self.status in {self.Status.SUCCEEDED, self.Status.FAILED}

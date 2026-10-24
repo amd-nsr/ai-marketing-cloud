@@ -16,12 +16,16 @@ Every consequential action is evaluated here before it runs. Checks run in this 
 Outcomes: EXECUTE, AWAIT_APPROVAL, REJECT, DEFER, CANCEL, each with reasons a person can
 read. Automatic mode never bypasses checks 2, 5, 6, 7, 9 or 10; a human approval of an
 automation action satisfies only the "a person agreed to this specific action" part.
-Action types other than publishing and draft generation (ad spend, connecting accounts,
-financial commitments) are always rejected for automation.
+Ad actions (create on Meta, activate, pause, change budget) are evaluated by
+``_evaluate_ads``: spend limits, the budget-change cap and the ads kill switch are hard
+checks that bind people as well as automation, and a missing or mismatched limit means
+the change is refused rather than guessed. Connecting accounts and any other financial
+commitment are never automated.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
@@ -42,6 +46,11 @@ CANCEL = "cancel"
 
 PUBLISH = "publish_content"
 GENERATE_DRAFT = "generate_draft"
+ADS_CREATE = "ads_create"
+ADS_ACTIVATE = "ads_activate"
+ADS_PAUSE = "ads_pause"
+ADS_BUDGET_CHANGE = "ads_budget_change"
+AD_ACTIONS = {ADS_CREATE, ADS_ACTIVATE, ADS_PAUSE, ADS_BUDGET_CHANGE}
 
 
 @dataclass
@@ -54,6 +63,8 @@ class ActionRequest:
     membership: Membership | None = None  # for user-initiated actions
     human_approved: bool = False  # automation action explicitly approved by a person
     action_id: Any = None  # the AutomationAction being evaluated, if any
+    ad_campaign: Any = None  # ads.AdCampaign for ad actions
+    payload: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -235,6 +246,184 @@ def _evaluate_generate(org: Organization, policy: Any, req: ActionRequest) -> De
     )
 
 
+def _evaluate_ads(org: Organization, policy: Any, req: ActionRequest) -> Decision:
+    from apps.ads.models import AdCampaign
+    from apps.ads.validation import MIN_DAILY_BUDGET, validate
+
+    def decide(outcome: str, *reasons: str) -> Decision:
+        return Decision(outcome, list(reasons), policy.version, policy.mode)
+
+    t = req.action_type
+    automation = req.initiated_by == "automation"
+    campaign = req.ad_campaign
+
+    # 1-2. who, and may they (people need ads.manage; automation is checked below)
+    if not automation and (req.membership is None or not req.membership.has_perm(Perm.ADS_MANAGE)):
+        return decide(REJECT, "Your role can't change ads.")
+    if campaign is None or campaign.organization_id != org.pk:
+        return decide(REJECT, "The ad campaign wasn't found.")
+    account = campaign.ad_account
+    if not account.is_usable:
+        return decide(REJECT, f"{account.name} needs to be reconnected before changes.")
+
+    # 3. mode, pause and the ads kill switch
+    if automation:
+        if policy.mode == "manual":
+            return decide(REJECT, "Manual mode: the system doesn't change ads on its own.")
+        if policy.paused:
+            return decide(DEFER, "Automation is paused.")
+        if not policy.ads_automation_enabled:
+            return decide(REJECT, "Ad automation is switched off in the advertising policy.")
+        if t == ADS_CREATE:
+            return decide(REJECT, "Campaigns are only created on Meta by a person.")
+    if policy.ads_writes_paused and t != ADS_PAUSE:
+        return decide(
+            REJECT, "Ad changes are stopped (kill switch). Only pausing campaigns is allowed."
+        )
+
+    # 4. spend-affecting changes need complete limits in the account's currency
+    spend_affecting = t in (ADS_CREATE, ADS_ACTIVATE, ADS_BUDGET_CHANGE)
+    per_campaign = policy.ads_max_daily_budget_per_campaign
+    total_daily = policy.ads_max_total_daily_budget
+    monthly = policy.ads_monthly_spend_limit
+    currency = policy.ads_limit_currency
+    if spend_affecting:
+        missing = [
+            label
+            for label, value in (
+                ("currency", currency),
+                ("maximum daily budget per campaign", per_campaign),
+                ("maximum total daily budget", total_daily),
+                ("monthly spend limit", monthly),
+            )
+            if not value
+        ]
+        if missing:
+            return decide(REJECT, f"Set the advertising limits first: {', '.join(missing)}.")
+        if account.currency != currency:
+            return decide(
+                REJECT,
+                f"Spend limits are set in {currency}, but {account.name} uses "
+                f"{account.currency}. Set limits for that currency first.",
+            )
+
+    reasons: list[str] = []
+    # 5-10. approval, validation, current state and limits per action
+    if t == ADS_CREATE:
+        if campaign.state not in (AdCampaign.State.APPROVED, AdCampaign.State.FAILED):
+            return decide(REJECT, "Only approved drafts can be created on Meta.")
+        if not campaign.is_approved:
+            return decide(REJECT, "This draft changed since it was approved. Approve it again.")
+        if issues := validate(campaign):
+            return decide(REJECT, *[i.message for i in issues])
+        if campaign.daily_budget > per_campaign:
+            return decide(
+                REJECT,
+                f"Daily budget {campaign.daily_budget} is above the limit of {per_campaign}.",
+            )
+        reasons.append("Approved draft; created paused (no spend until activated).")
+    elif t == ADS_ACTIVATE:
+        if campaign.state != AdCampaign.State.CREATED:
+            return decide(REJECT, "Create the campaign on Meta before activating it.")
+        if campaign.configured_status == "ACTIVE":
+            return decide(CANCEL, "The campaign is already active.")
+        if campaign.source != AdCampaign.Source.SYNCED and not campaign.is_approved:
+            return decide(REJECT, "This campaign changed since it was approved.")
+        budget = campaign.daily_budget
+        if budget is None:
+            return decide(
+                REJECT,
+                "This campaign has no campaign-level daily budget, so spend can't be "
+                "checked against your limits. Manage it in Meta Ads Manager.",
+            )
+        limit_reason = _spend_check(org, policy, campaign, new_budget=budget, will_be_active=True)
+        if limit_reason:
+            return decide(REJECT, limit_reason)
+        reasons.append(f"Within limits: {budget} {currency}/day for this campaign.")
+    elif t == ADS_BUDGET_CHANGE:
+        try:
+            new = Decimal(str(req.payload.get("daily_budget")))
+        except (InvalidOperation, TypeError):
+            return decide(REJECT, "The new daily budget isn't a number.")
+        current = campaign.daily_budget
+        if campaign.state != AdCampaign.State.CREATED or current is None:
+            return decide(REJECT, "Only campaigns on Meta with a campaign budget can change.")
+        if new == current:
+            return decide(CANCEL, "The budget is already at that amount.")
+        if new < MIN_DAILY_BUDGET:
+            return decide(REJECT, f"The daily budget must be at least {MIN_DAILY_BUDGET}.")
+        if new > current:
+            cap = policy.ads_max_budget_increase_percent
+            increase = (new - current) / current * 100
+            if increase > cap:
+                return decide(
+                    REJECT,
+                    f"A {increase:.0f}% increase is above the {cap}% allowed per change.",
+                )
+            limit_reason = _spend_check(
+                org, policy, campaign, new_budget=new, will_be_active=campaign.is_live
+            )
+            if limit_reason:
+                return decide(REJECT, limit_reason)
+        reasons.append(f"Budget {current} → {new} {currency}/day is within limits.")
+    elif t == ADS_PAUSE:
+        if campaign.state != AdCampaign.State.CREATED or campaign.configured_status != "ACTIVE":
+            return decide(CANCEL, "The campaign isn't running.")
+        reasons.append("Pausing stops spend.")
+
+    if not automation:
+        return decide(EXECUTE, "Requested by a person with ads permission.", *reasons)
+
+    needs_person: list[str] = []
+    if policy.mode == "semi_automatic":
+        needs_person.append("Semi-automatic mode: a person approves each ad change.")
+    else:
+        allowed = {
+            ADS_ACTIVATE: policy.ads_allow_automated_activation,
+            ADS_BUDGET_CHANGE: policy.ads_allow_automated_budget_changes,
+            ADS_PAUSE: policy.ads_allow_automated_pause,
+        }[t]
+        if not allowed:
+            needs_person.append("The advertising policy doesn't allow this change automatically.")
+    if needs_person and not req.human_approved:
+        return decide(AWAIT_APPROVAL, *needs_person, *reasons)
+    return decide(
+        EXECUTE,
+        "Approved by a person." if req.human_approved else "Within the advertising policy.",
+        *reasons,
+    )
+
+
+def _spend_check(
+    org: Organization, policy: Any, campaign: Any, *, new_budget: Decimal, will_be_active: bool
+) -> str | None:
+    """Hard spend limits. Returns why the change is refused, or None."""
+    from apps.ads import spend
+
+    currency = policy.ads_limit_currency
+    if new_budget > policy.ads_max_daily_budget_per_campaign:
+        return (
+            f"{new_budget} {currency}/day is above the per-campaign limit of "
+            f"{policy.ads_max_daily_budget_per_campaign}."
+        )
+    if not spend.spend_data_is_fresh(org, currency):
+        return "Spend data is out of date. Sync the ad accounts, then try again."
+    spent = spend.month_spend(org, currency)
+    if spent >= policy.ads_monthly_spend_limit:
+        return (
+            f"This month's spend ({spent} {currency}) has reached the limit of "
+            f"{policy.ads_monthly_spend_limit}."
+        )
+    if will_be_active:
+        others = spend.active_daily_total(org, currency, exclude=campaign)
+        if others + new_budget > policy.ads_max_total_daily_budget:
+            return (
+                f"Active campaigns would total {others + new_budget} {currency}/day, above the "
+                f"limit of {policy.ads_max_total_daily_budget}."
+            )
+    return None
+
+
 def evaluate(org: Organization, req: ActionRequest) -> Decision:
     policy = get_policy(org)
     if req.initiated_by not in {"user", "automation"}:
@@ -243,6 +432,8 @@ def evaluate(org: Organization, req: ActionRequest) -> Decision:
         return _evaluate_publish(org, policy, req)
     if req.action_type == GENERATE_DRAFT:
         return _evaluate_generate(org, policy, req)
+    if req.action_type in AD_ACTIONS:
+        return _evaluate_ads(org, policy, req)
     return Decision(
         REJECT, ["This kind of action is never automated."], policy.version, policy.mode
     )

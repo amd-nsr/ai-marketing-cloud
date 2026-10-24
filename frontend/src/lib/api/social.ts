@@ -56,6 +56,7 @@ export const completeConnection = (state: string, code: string) =>
     schema: z.object({
       organization_id: z.string().uuid(),
       accounts: z.array(socialAccountSchema),
+      meta_connection_id: z.string().uuid().nullable(),
     }),
   });
 export const disconnectAccount = (orgId: string, id: string) =>

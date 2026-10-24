@@ -94,7 +94,24 @@ def sweep_automation_actions() -> dict[str, int]:
             job = PublishingJob.objects.filter(
                 organization=action.organization, idempotency_key=f"automation:{action.pk}"
             ).first()
-            if job is not None:
+            if action.ad_campaign_id is not None:
+                # Ad writes: what reached Meta is unknown here. Fail visibly; a creation
+                # keeps its saved progress, so a retry resumes and re-checks by name tag.
+                from apps.ads.models import AdCampaign
+
+                AdCampaign.objects.filter(
+                    pk=action.ad_campaign_id, state=AdCampaign.State.CREATING
+                ).update(
+                    state=AdCampaign.State.FAILED,
+                    last_error="Interrupted. Retry to resume; the next sync shows what exists.",
+                )
+                action.status = A.FAILED
+                action.error = (
+                    "The ad change was interrupted. The next sync shows what Meta applied; "
+                    "retry if it's missing."
+                )
+                counts["interrupted"] += 1
+            elif job is not None:
                 action.publishing_job = job
                 action.status = A.SUCCEEDED
                 action.executed_at = action.executed_at or timezone.now()

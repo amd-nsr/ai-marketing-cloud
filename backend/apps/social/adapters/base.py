@@ -116,9 +116,21 @@ class ReauthRequired(SocialError):
     needs_reauth = True
 
 
+class PermissionMissing(ReauthRequired):
+    """A required permission was not granted or was removed; reconnecting can fix it."""
+
+    code = "permission_missing"
+
+
 class RateLimited(SocialError):
     code = "rate_limited"
     retryable = True
+
+    def __init__(
+        self, message: str = "", *, request_id: str = "", retry_after_seconds: int | None = None
+    ) -> None:
+        super().__init__(message, request_id=request_id)
+        self.retry_after_seconds = retry_after_seconds
 
 
 class TransientError(SocialError):

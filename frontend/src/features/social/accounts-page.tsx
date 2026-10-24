@@ -24,6 +24,8 @@ import {
 import { formatDate } from "@/lib/format";
 import { FORMAT_LABEL } from "@/features/content/labels";
 
+import { MetaLogins } from "./meta-logins";
+
 const STATUS = {
   connected: { label: "Connected", tone: "success" },
   needs_reauth: { label: "Reconnect required", tone: "danger" },
@@ -171,6 +173,7 @@ export function AccountsPage() {
           them to try the full workflow.
         </Alert>
       )}
+      <MetaLogins />
       {(platforms.isPending || accounts.isPending) && <PageLoading />}
       {platforms.isError && <Alert tone="danger">{errorMessage(platforms.error)}</Alert>}
       {platforms.data && accounts.data && (

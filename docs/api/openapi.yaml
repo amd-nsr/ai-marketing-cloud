@@ -225,6 +225,26 @@ paths:
           description: ''
         '503':
           description: No response body
+  /api/v1/meta/data-deletion/{code}/:
+    get:
+      operationId: meta_data_deletion_retrieve
+      parameters:
+      - in: path
+        name: code
+        schema:
+          type: string
+        required: true
+      tags:
+      - meta
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaDataDeletionStatus'
+          description: ''
   /api/v1/orgs/:
     get:
       operationId: orgs_list
@@ -326,6 +346,537 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Organization'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/accounts/:
+    get:
+      operationId: orgs_ads_accounts_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdAccountList'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/accounts/{id}/:
+    get:
+      operationId: orgs_ads_accounts_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad account.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdAccount'
+          description: ''
+    delete:
+      operationId: orgs_ads_accounts_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad account.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/ads/accounts/{id}/sync/:
+    post:
+      operationId: orgs_ads_accounts_sync_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad account.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdSyncRun'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/:
+    get:
+      operationId: orgs_ads_campaigns_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdCampaignList'
+          description: ''
+    post:
+      operationId: orgs_ads_campaigns_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DraftWrite'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdCampaignDetail'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/{id}/:
+    get:
+      operationId: orgs_ads_campaigns_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdCampaignDetail'
+          description: ''
+    patch:
+      operationId: orgs_ads_campaigns_partial_update
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDraftWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDraftWrite'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdCampaignDetail'
+          description: ''
+    delete:
+      operationId: orgs_ads_campaigns_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/ads/campaigns/{id}/activate/:
+    post:
+      operationId: orgs_ads_campaigns_activate_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResult'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/{id}/approve/:
+    post:
+      operationId: orgs_ads_campaigns_approve_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdCampaignDetail'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/{id}/budget/:
+    post:
+      operationId: orgs_ads_campaigns_budget_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Budget'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Budget'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResult'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/{id}/create-on-platform/:
+    post:
+      operationId: orgs_ads_campaigns_create_on_platform_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResult'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/{id}/pause/:
+    post:
+      operationId: orgs_ads_campaigns_pause_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResult'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/{id}/validate/:
+    get:
+      operationId: orgs_ads_campaigns_validate_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this ad campaign.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIssueList'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/campaigns/generate/:
+    post:
+      operationId: orgs_ads_campaigns_generate_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateDraft'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GenerateDraft'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
+  /api/v1/orgs/{org_id}/ads/insights/:
+    get:
+      operationId: orgs_ads_insights_retrieve
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - ads
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdInsightsSummary'
           description: ''
   /api/v1/orgs/{org_id}/ai/runs/:
     get:
@@ -1733,6 +2284,88 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContentItem'
           description: ''
+  /api/v1/orgs/{org_id}/content-templates/:
+    get:
+      operationId: orgs_content_templates_list
+      description: 'Starting documents: built-in (styled with the brand) plus the
+        organization''s own.'
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BuiltInTemplate'
+          description: ''
+    post:
+      operationId: orgs_content_templates_create
+      description: 'Starting documents: built-in (styled with the brand) plus the
+        organization''s own.'
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentTemplate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContentTemplate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentTemplate'
+          description: ''
+  /api/v1/orgs/{org_id}/content-templates/{id}/:
+    delete:
+      operationId: orgs_content_templates_destroy
+      description: 'Starting documents: built-in (styled with the brand) plus the
+        organization''s own.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content template.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/orgs/{org_id}/content/{id}/:
     get:
       operationId: orgs_content_retrieve
@@ -2034,13 +2667,93 @@ paths:
       responses:
         '200':
           content:
-            image/*:
+            '*/*':
               schema:
                 type: string
                 format: binary
           description: ''
         '302':
           description: No response body
+  /api/v1/orgs/{org_id}/content/{id}/assist/:
+    post:
+      operationId: orgs_content_assist_create
+      description: |-
+        Suggest replacement text for one section (rewrite, shorten, translate, ...).
+
+        The suggestion arrives in the run's output; nothing is saved until the user
+        accepts it into the editor and saves a version.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Assist'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Assist'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/duplicate/:
+    post:
+      operationId: orgs_content_duplicate_create
+      description: Copy into a new draft; pass platform/format to adapt it for another
+        channel.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Duplicate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Duplicate'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentItem'
+          description: ''
   /api/v1/orgs/{org_id}/content/{id}/regenerate/:
     post:
       operationId: orgs_content_regenerate_create
@@ -2070,6 +2783,151 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/Regenerate'
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/render-jobs/:
+    get:
+      operationId: orgs_content_render_jobs_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRenderJobList'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/render-video/:
+    post:
+      operationId: orgs_content_render_video_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderJob'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/renders/:
+    post:
+      operationId: orgs_content_renders_create
+      description: Upload the editor's export of one page of the current design.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RenderUpload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentAsset'
+          description: ''
+  /api/v1/orgs/{org_id}/content/{id}/storyboard/:
+    post:
+      operationId: orgs_content_storyboard_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this content item.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Storyboard'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Storyboard'
       security:
       - cookieAuth: []
       responses:
@@ -2262,6 +3120,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContentVersion'
           description: ''
+  /api/v1/orgs/{org_id}/content/capabilities/:
+    get:
+      operationId: orgs_content_capabilities_retrieve
+      description: What this deployment can do, so the UI never offers a feature that
+        isn't there.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioCapabilities'
+          description: ''
   /api/v1/orgs/{org_id}/content/generate/:
     post:
       operationId: orgs_content_generate_create
@@ -2386,6 +3267,262 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/orgs/{org_id}/library/:
+    get:
+      operationId: orgs_library_list
+      description: 'The organization''s reusable media: uploaded and AI-generated
+        images, video, audio.'
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLibraryAssetList'
+          description: ''
+    post:
+      operationId: orgs_library_create
+      description: 'The organization''s reusable media: uploaded and AI-generated
+        images, video, audio.'
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LibraryUpload'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryAsset'
+          description: ''
+  /api/v1/orgs/{org_id}/library/{id}/:
+    get:
+      operationId: orgs_library_retrieve
+      description: 'The organization''s reusable media: uploaded and AI-generated
+        images, video, audio.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this library asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryAsset'
+          description: ''
+    put:
+      operationId: orgs_library_update
+      description: 'The organization''s reusable media: uploaded and AI-generated
+        images, video, audio.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this library asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LibraryAsset'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LibraryAsset'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryAsset'
+          description: ''
+    patch:
+      operationId: orgs_library_partial_update
+      description: 'The organization''s reusable media: uploaded and AI-generated
+        images, video, audio.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this library asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLibraryAsset'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLibraryAsset'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryAsset'
+          description: ''
+    delete:
+      operationId: orgs_library_destroy
+      description: 'The organization''s reusable media: uploaded and AI-generated
+        images, video, audio.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this library asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/library/{id}/file/:
+    get:
+      operationId: orgs_library_file_retrieve
+      description: 'The organization''s reusable media: uploaded and AI-generated
+        images, video, audio.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this library asset.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '302':
+          description: No response body
+  /api/v1/orgs/{org_id}/library/generate/:
+    post:
+      operationId: orgs_library_generate_create
+      description: Generate an image into the library with the configured image provider.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateImage'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GenerateImage'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIWorkflowRun'
+          description: ''
   /api/v1/orgs/{org_id}/marketing-plans/:
     get:
       operationId: orgs_marketing_plans_list
@@ -2669,6 +3806,204 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/orgs/{org_id}/meta/connections/:
+    get:
+      operationId: orgs_meta_connections_list
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMetaConnectionList'
+          description: ''
+  /api/v1/orgs/{org_id}/meta/connections/{id}/:
+    get:
+      operationId: orgs_meta_connections_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meta connection.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaConnection'
+          description: ''
+    delete:
+      operationId: orgs_meta_connections_destroy
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meta connection.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/orgs/{org_id}/meta/connections/{id}/ad-accounts/:
+    post:
+      operationId: orgs_meta_connections_ad_accounts_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meta connection.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectAdAccounts'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SelectAdAccounts'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaConnection'
+          description: ''
+  /api/v1/orgs/{org_id}/meta/connections/{id}/pages/:
+    post:
+      operationId: orgs_meta_connections_pages_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meta connection.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectPages'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SelectPages'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaConnection'
+          description: ''
+  /api/v1/orgs/{org_id}/meta/connections/{id}/refresh/:
+    post:
+      operationId: orgs_meta_connections_refresh_create
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meta connection.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaConnection'
+          description: ''
   /api/v1/orgs/{org_id}/notifications/:
     get:
       operationId: orgs_notifications_list
@@ -3176,6 +4511,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecommendationsRefreshed'
           description: ''
+  /api/v1/orgs/{org_id}/render-jobs/{id}/:
+    get:
+      operationId: orgs_render_jobs_retrieve
+      description: GenericViewSet whose queryset is always restricted to the URL's
+        organization.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this render job.
+        required: true
+      - in: path
+        name: org_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - orgs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderJob'
+          description: ''
   /api/v1/orgs/{org_id}/social/accounts/:
     get:
       operationId: orgs_social_accounts_list
@@ -3631,6 +4996,20 @@ components:
           format: uuid
           readOnly: true
           nullable: true
+        ad_campaign:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        ad_campaign_name:
+          type: string
+          readOnly: true
+        ad_campaign_currency:
+          type: string
+          readOnly: true
+        ad_account_is_mock:
+          type: boolean
+          readOnly: true
         approved_by_email:
           type: string
           format: email
@@ -3653,6 +5032,10 @@ components:
       - account_is_mock
       - account_name
       - action_type
+      - ad_account_is_mock
+      - ad_campaign
+      - ad_campaign_currency
+      - ad_campaign_name
       - ai_run
       - approved_at
       - approved_by_email
@@ -3677,6 +5060,16 @@ components:
       - social_account
       - status
       - workflow
+    ActionResult:
+      type: object
+      properties:
+        campaign:
+          $ref: '#/components/schemas/AdCampaignDetail'
+        action:
+          $ref: '#/components/schemas/Action'
+      required:
+      - action
+      - campaign
     ActorTypeEnum:
       enum:
       - user
@@ -3685,6 +5078,641 @@ components:
       description: |-
         * `user` - User
         * `system` - System
+    Ad:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        configured_status:
+          type: string
+          readOnly: true
+        effective_status:
+          type: string
+          readOnly: true
+      required:
+      - configured_status
+      - effective_status
+      - external_id
+      - id
+      - name
+    AdAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        platform:
+          type: string
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        timezone_name:
+          type: string
+          readOnly: true
+        account_status:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SocialAccountStatusEnum'
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        is_usable:
+          type: boolean
+          readOnly: true
+        last_synced_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_sync_status:
+          type: string
+          readOnly: true
+        last_error:
+          type: string
+          readOnly: true
+        connected_at:
+          type: string
+          format: date-time
+          readOnly: true
+        meta_connection:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        spend_this_month:
+          type: string
+          readOnly: true
+        recent_syncs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdSyncRun'
+          readOnly: true
+      required:
+      - account_status
+      - connected_at
+      - currency
+      - external_id
+      - id
+      - is_mock
+      - is_usable
+      - last_error
+      - last_sync_status
+      - last_synced_at
+      - meta_connection
+      - name
+      - platform
+      - recent_syncs
+      - spend_this_month
+      - status
+      - timezone_name
+    AdCampaign:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        ad_account:
+          type: string
+          format: uuid
+          readOnly: true
+        ad_account_name:
+          type: string
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+          nullable: true
+        name:
+          type: string
+          readOnly: true
+        objective:
+          type: string
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/AdCampaignStateEnum'
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/AdCampaignSourceEnum'
+          readOnly: true
+        configured_status:
+          type: string
+          readOnly: true
+        effective_status:
+          type: string
+          readOnly: true
+        daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        lifetime_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        special_ad_categories:
+          readOnly: true
+        spec:
+          readOnly: true
+        marketing_campaign:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        ai_run:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        ai_notes:
+          readOnly: true
+        is_mock_ai:
+          type: boolean
+          readOnly: true
+        revision:
+          type: integer
+          readOnly: true
+        is_approved:
+          type: boolean
+          readOnly: true
+        approved_by_email:
+          type: string
+          format: email
+          readOnly: true
+        approved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        progress:
+          readOnly: true
+        activated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        paused_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_error:
+          type: string
+          readOnly: true
+        last_synced_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+          readOnly: true
+        metrics_7d:
+          allOf:
+          - $ref: '#/components/schemas/Metrics'
+          readOnly: true
+        metrics_30d:
+          allOf:
+          - $ref: '#/components/schemas/Metrics'
+          readOnly: true
+      required:
+      - activated_at
+      - ad_account
+      - ad_account_name
+      - ai_notes
+      - ai_run
+      - approved_at
+      - approved_by_email
+      - configured_status
+      - created_at
+      - currency
+      - daily_budget
+      - effective_status
+      - external_id
+      - id
+      - is_approved
+      - is_mock
+      - is_mock_ai
+      - issues
+      - last_error
+      - last_synced_at
+      - lifetime_budget
+      - marketing_campaign
+      - metrics_30d
+      - metrics_7d
+      - name
+      - objective
+      - paused_at
+      - progress
+      - revision
+      - source
+      - spec
+      - special_ad_categories
+      - state
+    AdCampaignDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        ad_account:
+          type: string
+          format: uuid
+          readOnly: true
+        ad_account_name:
+          type: string
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+          nullable: true
+        name:
+          type: string
+          readOnly: true
+        objective:
+          type: string
+          readOnly: true
+        state:
+          allOf:
+          - $ref: '#/components/schemas/AdCampaignStateEnum'
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/AdCampaignSourceEnum'
+          readOnly: true
+        configured_status:
+          type: string
+          readOnly: true
+        effective_status:
+          type: string
+          readOnly: true
+        daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        lifetime_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        special_ad_categories:
+          readOnly: true
+        spec:
+          readOnly: true
+        marketing_campaign:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        ai_run:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        ai_notes:
+          readOnly: true
+        is_mock_ai:
+          type: boolean
+          readOnly: true
+        revision:
+          type: integer
+          readOnly: true
+        is_approved:
+          type: boolean
+          readOnly: true
+        approved_by_email:
+          type: string
+          format: email
+          readOnly: true
+        approved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        progress:
+          readOnly: true
+        activated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        paused_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_error:
+          type: string
+          readOnly: true
+        last_synced_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+          readOnly: true
+        metrics_7d:
+          allOf:
+          - $ref: '#/components/schemas/Metrics'
+          readOnly: true
+        metrics_30d:
+          allOf:
+          - $ref: '#/components/schemas/Metrics'
+          readOnly: true
+        ad_sets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdSet'
+          readOnly: true
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Action'
+          readOnly: true
+      required:
+      - actions
+      - activated_at
+      - ad_account
+      - ad_account_name
+      - ad_sets
+      - ai_notes
+      - ai_run
+      - approved_at
+      - approved_by_email
+      - configured_status
+      - created_at
+      - currency
+      - daily_budget
+      - effective_status
+      - external_id
+      - id
+      - is_approved
+      - is_mock
+      - is_mock_ai
+      - issues
+      - last_error
+      - last_synced_at
+      - lifetime_budget
+      - marketing_campaign
+      - metrics_30d
+      - metrics_7d
+      - name
+      - objective
+      - paused_at
+      - progress
+      - revision
+      - source
+      - spec
+      - special_ad_categories
+      - state
+    AdCampaignSourceEnum:
+      enum:
+      - ai
+      - manual
+      - synced
+      type: string
+      description: |-
+        * `ai` - AI draft
+        * `manual` - Created here
+        * `synced` - Created on Meta
+    AdCampaignStateEnum:
+      enum:
+      - draft
+      - approved
+      - creating
+      - created
+      - failed
+      - removed
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `approved` - Approved, not on Meta yet
+        * `creating` - Creating on Meta
+        * `created` - On Meta
+        * `failed` - Creation failed
+        * `removed` - Removed
+    AdCurrencyTotals:
+      type: object
+      properties:
+        currency:
+          type: string
+        totals:
+          $ref: '#/components/schemas/Metrics'
+        spend_this_month:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        active_daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        is_mock:
+          type: boolean
+        daily:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdDailyPoint'
+      required:
+      - active_daily_budget
+      - currency
+      - daily
+      - is_mock
+      - spend_this_month
+      - totals
+    AdDailyPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        spend:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        clicks:
+          type: integer
+          nullable: true
+        impressions:
+          type: integer
+          nullable: true
+      required:
+      - clicks
+      - date
+      - impressions
+      - spend
+    AdInsightsSummary:
+      type: object
+      properties:
+        days:
+          type: integer
+        currencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdCurrencyTotals'
+      required:
+      - currencies
+      - days
+    AdObjectiveEnum:
+      enum:
+      - OUTCOME_TRAFFIC
+      - OUTCOME_AWARENESS
+      - OUTCOME_ENGAGEMENT
+      type: string
+      description: |-
+        * `OUTCOME_TRAFFIC` - Traffic
+        * `OUTCOME_AWARENESS` - Awareness
+        * `OUTCOME_ENGAGEMENT` - Engagement
+    AdSet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        configured_status:
+          type: string
+          readOnly: true
+        effective_status:
+          type: string
+          readOnly: true
+        optimization_goal:
+          type: string
+          readOnly: true
+        targeting:
+          readOnly: true
+        start_time:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        end_time:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        ads:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ad'
+          readOnly: true
+      required:
+      - ads
+      - configured_status
+      - effective_status
+      - end_time
+      - external_id
+      - id
+      - name
+      - optimization_goal
+      - start_time
+      - targeting
+    AdSyncRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        trigger:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AdSyncStatusEnum'
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        counts:
+          readOnly: true
+        errors:
+          readOnly: true
+      required:
+      - counts
+      - errors
+      - finished_at
+      - id
+      - started_at
+      - status
+      - trigger
+    AdSyncStatusEnum:
+      enum:
+      - running
+      - succeeded
+      - partial
+      - failed
+      type: string
+      description: |-
+        * `running` - Running
+        * `succeeded` - Succeeded
+        * `partial` - Partially succeeded
+        * `failed` - Failed
     Approval:
       type: object
       properties:
@@ -3779,6 +5807,43 @@ components:
           format: uri
       required:
       - file
+    Assist:
+      type: object
+      properties:
+        operation:
+          $ref: '#/components/schemas/OperationEnum'
+        field:
+          $ref: '#/components/schemas/FieldEnum'
+        text:
+          type: string
+          maxLength: 10000
+        tone:
+          type: string
+          default: ''
+          maxLength: 100
+        language:
+          type: string
+          default: ''
+          maxLength: 40
+        instructions:
+          type: string
+          default: ''
+          maxLength: 1000
+        keywords:
+          type: array
+          items:
+            type: string
+            maxLength: 60
+          maxItems: 10
+        length:
+          default: ''
+          oneOf:
+          - $ref: '#/components/schemas/LengthEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+      required:
+      - field
+      - operation
+      - text
     Attempt:
       type: object
       properties:
@@ -3888,10 +5953,18 @@ components:
       enum:
       - publish_content
       - generate_draft
+      - ads_create
+      - ads_activate
+      - ads_pause
+      - ads_budget_change
       type: string
       description: |-
         * `publish_content` - Publish content
         * `generate_draft` - Generate a draft
+        * `ads_create` - Create ad campaign on Meta
+        * `ads_activate` - Activate ad campaign
+        * `ads_pause` - Pause ad campaign
+        * `ads_budget_change` - Change ad budget
     AutomationCounts:
       type: object
       properties:
@@ -4096,6 +6169,36 @@ components:
           readOnly: true
       required:
       - updated_at
+    Budget:
+      type: object
+      properties:
+        daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+      required:
+      - daily_budget
+    BuiltInTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        kind:
+          type: string
+        document: {}
+        built_in:
+          type: boolean
+      required:
+      - built_in
+      - description
+      - document
+      - id
+      - kind
+      - name
     BusinessProfile:
       type: object
       properties:
@@ -4237,11 +6340,28 @@ components:
         * `active` - Active
         * `completed` - Completed
         * `archived` - Archived
+    Capability:
+      type: object
+      properties:
+        available:
+          type: boolean
+        is_mock:
+          type: boolean
+        provider:
+          type: string
+          nullable: true
+        note:
+          type: string
+      required:
+      - available
+      - is_mock
+      - note
+      - provider
     Connect:
       type: object
       properties:
         platform:
-          $ref: '#/components/schemas/PlatformEnum'
+          $ref: '#/components/schemas/SocialPlatformEnum'
         simulation:
           type: boolean
           default: false
@@ -4257,8 +6377,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SocialAccount'
+        meta_connection_id:
+          type: string
+          format: uuid
+          nullable: true
       required:
       - accounts
+      - meta_connection_id
       - organization_id
     ConnectStart:
       type: object
@@ -4291,7 +6416,25 @@ components:
           type: integer
           readOnly: true
           nullable: true
+        duration_seconds:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
         position:
+          type: integer
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/ContentAssetSourceEnum'
+          readOnly: true
+        page_id:
+          type: string
+          readOnly: true
+        source_hash:
+          type: string
+          readOnly: true
+        version_number:
           type: integer
           readOnly: true
         file_url:
@@ -4304,13 +6447,26 @@ components:
       required:
       - content_type
       - created_at
+      - duration_seconds
       - file_url
       - height
       - id
       - original_filename
+      - page_id
       - position
       - size_bytes
+      - source
+      - source_hash
+      - version_number
       - width
+    ContentAssetSourceEnum:
+      enum:
+      - upload
+      - render
+      type: string
+      description: |-
+        * `upload` - Uploaded
+        * `render` - Rendered from the editable design or video
     ContentItem:
       type: object
       properties:
@@ -4323,7 +6479,7 @@ components:
           maxLength: 200
         platform:
           allOf:
-          - $ref: '#/components/schemas/PlatformEnum'
+          - $ref: '#/components/schemas/ContentPlatformEnum'
           readOnly: true
         format:
           allOf:
@@ -4361,6 +6517,18 @@ components:
           type: string
           nullable: true
           readOnly: true
+        document_kind:
+          type: string
+          nullable: true
+          readOnly: true
+        thumbnail_url:
+          type: string
+          nullable: true
+          readOnly: true
+        thumbnail_type:
+          type: string
+          nullable: true
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -4374,11 +6542,14 @@ components:
       - campaign_name
       - created_at
       - current_version
+      - document_kind
       - format
       - id
       - pending_approval_id
       - platform
       - status
+      - thumbnail_type
+      - thumbnail_url
       - title
       - updated_at
       - version_count
@@ -4418,11 +6589,12 @@ components:
         alt_text:
           type: string
           maxLength: 1000
+        document: {}
         title:
           type: string
           maxLength: 200
         platform:
-          $ref: '#/components/schemas/PlatformEnum'
+          $ref: '#/components/schemas/ContentPlatformEnum'
         format:
           allOf:
           - $ref: '#/components/schemas/FormatEnum'
@@ -4442,6 +6614,20 @@ components:
       required:
       - platform
       - title
+    ContentPlatformEnum:
+      enum:
+      - instagram
+      - facebook
+      - tiktok
+      - blog
+      - email
+      type: string
+      description: |-
+        * `instagram` - Instagram
+        * `facebook` - Facebook
+        * `tiktok` - TikTok
+        * `blog` - Blog
+        * `email` - Email
     ContentStatusEnum:
       enum:
       - draft
@@ -4460,6 +6646,37 @@ components:
         * `scheduled` - Scheduled
         * `published` - Published
         * `archived` - Archived
+    ContentTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          maxLength: 300
+        kind:
+          type: string
+          readOnly: true
+        document: {}
+        built_in:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - built_in
+      - created_at
+      - document
+      - id
+      - kind
+      - name
     ContentVersion:
       type: object
       properties:
@@ -4495,6 +6712,8 @@ components:
         alt_text:
           type: string
           readOnly: true
+        document:
+          readOnly: true
         source:
           allOf:
           - $ref: '#/components/schemas/AuthorshipSourceEnum'
@@ -4527,6 +6746,7 @@ components:
       - created_by_email
       - creative_brief
       - cta
+      - document
       - hashtags
       - headline
       - hook
@@ -4544,6 +6764,49 @@ components:
           type: string
           default: ''
           maxLength: 2000
+    DraftWrite:
+      type: object
+      properties:
+        ad_account:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        objective:
+          $ref: '#/components/schemas/AdObjectiveEnum'
+        daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        special_ad_categories:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 5
+        spec:
+          type: object
+          additionalProperties: {}
+        marketing_campaign:
+          type: string
+          format: uuid
+          nullable: true
+    Duplicate:
+      type: object
+      properties:
+        title:
+          type: string
+          default: ''
+          maxLength: 200
+        platform:
+          $ref: '#/components/schemas/ContentPlatformEnum'
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+        campaign:
+          type: string
+          format: uuid
+          nullable: true
     Evidence:
       type: object
       properties:
@@ -4585,6 +6848,44 @@ components:
       - published_post
       - sample_size
       - value
+    Feature:
+      type: object
+      properties:
+        feature:
+          type: string
+        label:
+          type: string
+        available:
+          type: boolean
+        missing:
+          type: array
+          items:
+            type: string
+      required:
+      - available
+      - feature
+      - label
+      - missing
+    FieldEnum:
+      enum:
+      - headline
+      - hook
+      - caption
+      - cta
+      - script
+      - slide
+      - hashtags
+      - text
+      type: string
+      description: |-
+        * `headline` - headline
+        * `hook` - hook
+        * `caption` - caption
+        * `cta` - cta
+        * `script` - script
+        * `slide` - slide
+        * `hashtags` - hashtags
+        * `text` - text
     FormatEnum:
       enum:
       - post
@@ -4592,6 +6893,8 @@ components:
       - reel
       - story
       - short_video
+      - article
+      - newsletter
       type: string
       description: |-
         * `post` - Post
@@ -4599,6 +6902,8 @@ components:
         * `reel` - Reel
         * `story` - Story
         * `short_video` - Short video
+        * `article` - Article
+        * `newsletter` - Newsletter
     GenerateContent:
       type: object
       properties:
@@ -4613,9 +6918,85 @@ components:
           type: string
           format: uuid
           nullable: true
+        objective:
+          type: string
+          default: ''
+          maxLength: 200
+        audience:
+          type: string
+          format: uuid
+          nullable: true
+        tone:
+          type: string
+          default: ''
+          maxLength: 100
+        language:
+          type: string
+          default: ''
+          maxLength: 40
+        length:
+          default: ''
+          oneOf:
+          - $ref: '#/components/schemas/LengthEnum'
+          - $ref: '#/components/schemas/BlankEnum'
       required:
       - brief
       - targets
+    GenerateDraft:
+      type: object
+      properties:
+        ad_account:
+          type: string
+          format: uuid
+        brief:
+          type: string
+          maxLength: 2000
+          minLength: 5
+        page_account:
+          type: string
+          format: uuid
+          nullable: true
+        link:
+          oneOf:
+          - type: string
+            format: uri
+          - type: string
+            maxLength: 0
+        daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        marketing_campaign:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - ad_account
+      - brief
+    GenerateImage:
+      type: object
+      properties:
+        prompt:
+          type: string
+          maxLength: 1000
+          minLength: 5
+        visual_style:
+          type: string
+          default: ''
+          maxLength: 200
+        width:
+          type: integer
+          maximum: 2048
+          minimum: 256
+          default: 1080
+        height:
+          type: integer
+          maximum: 2048
+          minimum: 256
+          default: 1080
+      required:
+      - prompt
     GeneratePlan:
       type: object
       properties:
@@ -4755,6 +7136,16 @@ components:
         * `pending` - Pending
         * `accepted` - Accepted
         * `revoked` - Revoked
+    Issue:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+      required:
+      - field
+      - message
     JobFailure:
       type: object
       properties:
@@ -4789,6 +7180,119 @@ components:
       - id
       - is_mock
       - platform
+    LengthEnum:
+      enum:
+      - short
+      - medium
+      - long
+      type: string
+      description: |-
+        * `short` - short
+        * `medium` - medium
+        * `long` - long
+    LibraryAsset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/LibraryAssetKindEnum'
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/LibraryAssetSourceEnum'
+          readOnly: true
+        title:
+          type: string
+          maxLength: 160
+        tags: {}
+        original_filename:
+          type: string
+          readOnly: true
+        content_type:
+          type: string
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        width:
+          type: integer
+          readOnly: true
+          nullable: true
+        height:
+          type: integer
+          readOnly: true
+          nullable: true
+        duration_seconds:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        generation:
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        file_url:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - content_type
+      - created_at
+      - duration_seconds
+      - file_url
+      - generation
+      - height
+      - id
+      - is_mock
+      - kind
+      - original_filename
+      - size_bytes
+      - source
+      - width
+    LibraryAssetKindEnum:
+      enum:
+      - image
+      - video
+      - audio
+      type: string
+      description: |-
+        * `image` - Image
+        * `video` - Video
+        * `audio` - Audio
+    LibraryAssetSourceEnum:
+      enum:
+      - upload
+      - ai_generated
+      type: string
+      description: |-
+        * `upload` - Uploaded
+        * `ai_generated` - AI-generated
+    LibraryUpload:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+        title:
+          type: string
+          default: ''
+          maxLength: 160
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 20
+      required:
+      - file
     Liveness:
       type: object
       properties:
@@ -5022,6 +7526,214 @@ components:
       - organization
       - permissions
       - role
+    MetaAdAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        currency:
+          type: string
+        timezone_name:
+          type: string
+        is_active:
+          type: boolean
+        connected:
+          type: boolean
+        ad_account_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - ad_account_id
+      - connected
+      - currency
+      - id
+      - is_active
+      - name
+      - timezone_name
+    MetaConnection:
+      type: object
+      description: Never includes tokens.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MetaConnectionStatusEnum'
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        is_usable:
+          type: boolean
+          readOnly: true
+        granted_permissions:
+          readOnly: true
+        declined_permissions:
+          readOnly: true
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+          readOnly: true
+        pages:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaPage'
+          readOnly: true
+        ad_accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaAdAccount'
+          readOnly: true
+        ads_enabled:
+          type: boolean
+          readOnly: true
+        token_expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        assets_refreshed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_checked_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_error:
+          type: string
+          readOnly: true
+        connected_by_email:
+          type: string
+          format: email
+          readOnly: true
+        connected_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ad_accounts
+      - ads_enabled
+      - assets_refreshed_at
+      - connected_at
+      - connected_by_email
+      - declined_permissions
+      - features
+      - granted_permissions
+      - id
+      - is_mock
+      - is_usable
+      - last_checked_at
+      - last_error
+      - name
+      - pages
+      - status
+      - token_expires_at
+    MetaConnectionStatusEnum:
+      enum:
+      - active
+      - needs_reauth
+      - revoked
+      - disconnected
+      - deleted
+      type: string
+      description: |-
+        * `active` - Connected
+        * `needs_reauth` - Reconnect required
+        * `revoked` - Access removed on Facebook
+        * `disconnected` - Disconnected
+        * `deleted` - Data deleted
+    MetaDataDeletionStatus:
+      type: object
+      properties:
+        confirmation_code:
+          type: string
+        status:
+          type: string
+        requested_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - completed_at
+      - confirmation_code
+      - requested_at
+      - status
+    MetaPage:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        can_publish:
+          type: boolean
+        connected:
+          type: boolean
+        social_account_id:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - can_publish
+      - category
+      - connected
+      - id
+      - name
+      - social_account_id
+    Metrics:
+      type: object
+      properties:
+        days:
+          type: integer
+        spend:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        impressions:
+          type: integer
+          nullable: true
+        reach:
+          type: integer
+          nullable: true
+        clicks:
+          type: integer
+          nullable: true
+        ctr:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,4})?$
+          nullable: true
+        cpc:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          nullable: true
+      required:
+      - clicks
+      - cpc
+      - ctr
+      - days
+      - impressions
+      - reach
+      - spend
     MetricsRefreshed:
       type: object
       properties:
@@ -5123,6 +7835,30 @@ components:
       - key
       - label
       - required
+    OperationEnum:
+      enum:
+      - alternatives
+      - draft
+      - emoji
+      - expand
+      - hashtags
+      - proofread
+      - rewrite
+      - shorten
+      - tone
+      - translate
+      type: string
+      description: |-
+        * `alternatives` - alternatives
+        * `draft` - draft
+        * `emoji` - emoji
+        * `expand` - expand
+        * `hashtags` - hashtags
+        * `proofread` - proofread
+        * `rewrite` - rewrite
+        * `shorten` - shorten
+        * `tone` - tone
+        * `translate` - translate
     OperationsOverview:
       type: object
       properties:
@@ -5230,6 +7966,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Action'
+    PaginatedAdAccountList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdAccount'
+    PaginatedAdCampaignList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdCampaign'
     PaginatedApprovalList:
       type: object
       required:
@@ -5414,6 +8196,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Invitation'
+    PaginatedIssueList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+    PaginatedLibraryAssetList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LibraryAsset'
     PaginatedMarketingPlanListList:
       type: object
       required:
@@ -5460,6 +8288,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Member'
+    PaginatedMetaConnectionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaConnection'
     PaginatedNotificationList:
       type: object
       required:
@@ -5598,6 +8449,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Recommendation'
+    PaginatedRenderJobList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RenderJob'
     PaginatedSocialAccountList:
       type: object
       required:
@@ -5852,7 +8726,7 @@ components:
           maxLength: 200
         platform:
           allOf:
-          - $ref: '#/components/schemas/PlatformEnum'
+          - $ref: '#/components/schemas/ContentPlatformEnum'
           readOnly: true
         format:
           allOf:
@@ -5890,11 +8764,104 @@ components:
           type: string
           nullable: true
           readOnly: true
+        document_kind:
+          type: string
+          nullable: true
+          readOnly: true
+        thumbnail_url:
+          type: string
+          nullable: true
+          readOnly: true
+        thumbnail_type:
+          type: string
+          nullable: true
+          readOnly: true
         created_at:
           type: string
           format: date-time
           readOnly: true
         updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedDraftWrite:
+      type: object
+      properties:
+        ad_account:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        objective:
+          $ref: '#/components/schemas/AdObjectiveEnum'
+        daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        special_ad_categories:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          maxItems: 5
+        spec:
+          type: object
+          additionalProperties: {}
+        marketing_campaign:
+          type: string
+          format: uuid
+          nullable: true
+    PatchedLibraryAsset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/LibraryAssetKindEnum'
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/LibraryAssetSourceEnum'
+          readOnly: true
+        title:
+          type: string
+          maxLength: 160
+        tags: {}
+        original_filename:
+          type: string
+          readOnly: true
+        content_type:
+          type: string
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        width:
+          type: integer
+          readOnly: true
+          nullable: true
+        height:
+          type: integer
+          readOnly: true
+          nullable: true
+        duration_seconds:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        generation:
+          readOnly: true
+        is_mock:
+          type: boolean
+          readOnly: true
+        file_url:
+          type: string
+          readOnly: true
+        created_at:
           type: string
           format: date-time
           readOnly: true
@@ -5971,6 +8938,40 @@ components:
         max_generated_drafts_per_week:
           type: integer
           maximum: 30
+          minimum: 0
+        ads_writes_paused:
+          type: boolean
+        ads_automation_enabled:
+          type: boolean
+        ads_allow_automated_pause:
+          type: boolean
+        ads_allow_automated_budget_changes:
+          type: boolean
+        ads_allow_automated_activation:
+          type: boolean
+        ads_auto_pause_on_spend_limit:
+          type: boolean
+        ads_limit_currency:
+          type: string
+          maxLength: 3
+        ads_max_daily_budget_per_campaign:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        ads_max_total_daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        ads_monthly_spend_limit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        ads_max_budget_increase_percent:
+          type: integer
+          maximum: 100
           minimum: 0
         version:
           type: integer
@@ -6144,6 +9145,40 @@ components:
         max_generated_drafts_per_week:
           type: integer
           maximum: 30
+          minimum: 0
+        ads_writes_paused:
+          type: boolean
+        ads_automation_enabled:
+          type: boolean
+        ads_allow_automated_pause:
+          type: boolean
+        ads_allow_automated_budget_changes:
+          type: boolean
+        ads_allow_automated_activation:
+          type: boolean
+        ads_auto_pause_on_spend_limit:
+          type: boolean
+        ads_limit_currency:
+          type: string
+          maxLength: 3
+        ads_max_daily_budget_per_campaign:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        ads_max_total_daily_budget:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        ads_monthly_spend_limit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          nullable: true
+        ads_max_budget_increase_percent:
+          type: integer
+          maximum: 100
           minimum: 0
         version:
           type: integer
@@ -6601,6 +9636,87 @@ components:
       required:
       - email
       - password
+    RenderJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        item:
+          type: string
+          format: uuid
+          readOnly: true
+        version_number:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/RenderJobStatusEnum'
+          readOnly: true
+        attempts:
+          type: integer
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        output:
+          allOf:
+          - $ref: '#/components/schemas/ContentAsset'
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - attempts
+      - created_at
+      - error_code
+      - error_message
+      - finished_at
+      - id
+      - item
+      - output
+      - started_at
+      - status
+      - version_number
+    RenderJobStatusEnum:
+      enum:
+      - queued
+      - running
+      - succeeded
+      - failed
+      type: string
+      description: |-
+        * `queued` - Queued
+        * `running` - Rendering
+        * `succeeded` - Done
+        * `failed` - Failed
+    RenderUpload:
+      type: object
+      properties:
+        page_id:
+          type: string
+          maxLength: 40
+        file:
+          type: string
+          format: uri
+      required:
+      - file
+      - page_id
     Retry:
       type: object
       properties:
@@ -6651,6 +9767,28 @@ components:
       - id
       - is_mock
       - workflow
+    SelectAdAccounts:
+      type: object
+      properties:
+        account_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 64
+          maxItems: 50
+      required:
+      - account_ids
+    SelectPages:
+      type: object
+      properties:
+        page_ids:
+          type: array
+          items:
+            type: string
+            maxLength: 64
+          maxItems: 50
+      required:
+      - page_ids
     Slide:
       type: object
       properties:
@@ -6673,7 +9811,7 @@ components:
           readOnly: true
         platform:
           allOf:
-          - $ref: '#/components/schemas/PlatformEnum'
+          - $ref: '#/components/schemas/SocialPlatformEnum'
           readOnly: true
         external_id:
           type: string
@@ -6740,6 +9878,48 @@ components:
         * `connected` - Connected
         * `needs_reauth` - Reconnect required
         * `disconnected` - Disconnected
+    SocialPlatformEnum:
+      enum:
+      - instagram
+      - facebook
+      - tiktok
+      type: string
+      description: |-
+        * `instagram` - Instagram
+        * `facebook` - Facebook
+        * `tiktok` - TikTok
+    Storyboard:
+      type: object
+      properties:
+        brief:
+          type: string
+          default: ''
+          maxLength: 2000
+    StudioCapabilities:
+      type: object
+      properties:
+        text_generation:
+          $ref: '#/components/schemas/Capability'
+        image_generation:
+          $ref: '#/components/schemas/Capability'
+        video_rendering:
+          $ref: '#/components/schemas/Capability'
+        ai_video_generation:
+          $ref: '#/components/schemas/Capability'
+        ai_voiceover:
+          $ref: '#/components/schemas/Capability'
+        max_media_upload_bytes:
+          type: integer
+        max_image_upload_bytes:
+          type: integer
+      required:
+      - ai_video_generation
+      - ai_voiceover
+      - image_generation
+      - max_image_upload_bytes
+      - max_media_upload_bytes
+      - text_generation
+      - video_rendering
     Submit:
       type: object
       properties:
@@ -6751,7 +9931,7 @@ components:
       type: object
       properties:
         platform:
-          $ref: '#/components/schemas/PlatformEnum'
+          $ref: '#/components/schemas/ContentPlatformEnum'
         format:
           $ref: '#/components/schemas/FormatEnum'
       required:
@@ -6923,6 +10103,7 @@ components:
         alt_text:
           type: string
           maxLength: 1000
+        document: {}
   securitySchemes:
     cookieAuth:
       type: apiKey

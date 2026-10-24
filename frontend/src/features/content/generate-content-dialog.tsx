@@ -12,19 +12,29 @@ import { Select, Textarea } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useOrg } from "@/hooks/use-org";
 import { useWorkflowRun } from "@/hooks/use-workflow-run";
-import type { Platform } from "@/lib/api/brand";
-import { type ContentFormat, generateContent, listCampaigns } from "@/lib/api/content";
+import { Input } from "@/components/ui/input";
+import {
+  type ContentFormat,
+  type ContentPlatform,
+  type CreativeDirection,
+  generateContent,
+  listCampaigns,
+} from "@/lib/api/content";
 import { errorMessage } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
-import { useBusinessProfile } from "@/features/brand/queries";
+import { useAudiences, useBusinessProfile } from "@/features/brand/queries";
+
+import { LANGUAGES } from "./studio/writing-assistant";
 
 import { FORMAT_LABEL, PLATFORM_FORMATS, PLATFORM_LABEL } from "./labels";
 
-type Target = `${Platform}:${ContentFormat}`;
-const DEFAULT_FORMAT: Record<Platform, ContentFormat> = {
+type Target = `${ContentPlatform}:${ContentFormat}`;
+const DEFAULT_FORMAT: Record<ContentPlatform, ContentFormat> = {
   instagram: "post",
   facebook: "post",
   tiktok: "short_video",
+  blog: "article",
+  email: "newsletter",
 };
 
 /** Mounted only while open, so every generation starts from fresh state. */
@@ -32,10 +42,13 @@ export function GenerateContentDialog({
   onClose,
   onGenerated,
   defaultCampaign,
+  defaultTargets,
 }: {
   onClose: () => void;
   onGenerated: (itemIds: string[]) => void;
   defaultCampaign?: string;
+  /** Preselected targets, e.g. a campaign's platforms. */
+  defaultTargets?: Target[];
 }) {
   const { organization } = useOrg();
   const queryClient = useQueryClient();
@@ -47,7 +60,10 @@ export function GenerateContentDialog({
   const preferred = profile.data?.preferred_platforms ?? [];
   const [brief, setBrief] = useState("");
   const [campaign, setCampaign] = useState(defaultCampaign ?? "");
-  const [targets, setTargets] = useState<Target[] | null>(null);
+  const [targets, setTargets] = useState<Target[] | null>(defaultTargets ?? null);
+  const audiences = useAudiences();
+  const [direction, setDirection] = useState<CreativeDirection>({ length: "" });
+  const [showDirection, setShowDirection] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -78,6 +94,8 @@ export function GenerateContentDialog({
           return { platform, format };
         }),
         campaign: campaign || null,
+        ...direction,
+        audience: direction.audience || null,
       });
       setRunId(created.id);
     } catch (e) {
@@ -129,7 +147,7 @@ export function GenerateContentDialog({
         <fieldset disabled={working}>
           <legend className="mb-2 text-sm font-medium">Platforms and formats</legend>
           <div className="flex flex-col gap-2">
-            {(Object.keys(PLATFORM_FORMATS) as Platform[]).map((platform) => (
+            {(Object.keys(PLATFORM_FORMATS) as ContentPlatform[]).map((platform) => (
               <div key={platform} className="flex flex-wrap items-center gap-2">
                 <span className="w-24 text-sm">{PLATFORM_LABEL[platform]}</span>
                 {PLATFORM_FORMATS[platform].map((format) => {
@@ -156,6 +174,93 @@ export function GenerateContentDialog({
             ))}
           </div>
         </fieldset>
+        <div>
+          <button
+            type="button"
+            className="text-sm font-medium text-primary hover:underline"
+            aria-expanded={showDirection}
+            onClick={() => setShowDirection((s) => !s)}
+          >
+            {showDirection
+              ? "− Hide creative direction"
+              : "+ Objective, audience, tone, language, length"}
+          </button>
+        </div>
+        {showDirection && (
+          <fieldset disabled={working} className="grid gap-3 sm:grid-cols-2">
+            <Field label="Objective" optional>
+              {(p) => (
+                <Input
+                  value={direction.objective ?? ""}
+                  maxLength={200}
+                  placeholder="e.g. more weekday visits"
+                  onChange={(e) => setDirection({ ...direction, objective: e.target.value })}
+                  {...p}
+                />
+              )}
+            </Field>
+            <Field label="Audience" optional>
+              {(p) => (
+                <Select
+                  value={direction.audience ?? ""}
+                  onChange={(e) => setDirection({ ...direction, audience: e.target.value })}
+                  {...p}
+                >
+                  <option value="">Your usual audience</option>
+                  {audiences.data?.results.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label="Tone" optional hint="Defaults to your brand voice.">
+              {(p) => (
+                <Input
+                  value={direction.tone ?? ""}
+                  maxLength={100}
+                  placeholder="e.g. playful"
+                  onChange={(e) => setDirection({ ...direction, tone: e.target.value })}
+                  {...p}
+                />
+              )}
+            </Field>
+            <Field label="Language" optional>
+              {(p) => (
+                <Select
+                  value={direction.language ?? ""}
+                  onChange={(e) => setDirection({ ...direction, language: e.target.value })}
+                  {...p}
+                >
+                  <option value="">Your content language</option>
+                  {LANGUAGES.map((l) => (
+                    <option key={l}>{l}</option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+            <Field label="Length" optional>
+              {(p) => (
+                <Select
+                  value={direction.length ?? ""}
+                  onChange={(e) =>
+                    setDirection({
+                      ...direction,
+                      length: e.target.value as CreativeDirection["length"],
+                    })
+                  }
+                  {...p}
+                >
+                  <option value="">Platform default</option>
+                  <option value="short">Short</option>
+                  <option value="medium">Medium</option>
+                  <option value="long">Long</option>
+                </Select>
+              )}
+            </Field>
+          </fieldset>
+        )}
         {campaigns.data && campaigns.data.count > 0 && (
           <Field label="Campaign" optional>
             {(p) => (

@@ -1,12 +1,24 @@
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { Platform } from "@/lib/api/brand";
-import type { ContentFormat, ContentStatus } from "@/lib/api/content";
+import type {
+  ContentFormat,
+  ContentPlatform,
+  ContentStatus,
+  DocumentKind,
+} from "@/lib/api/content";
 
-export const PLATFORM_LABEL: Record<Platform, string> = {
+export const PLATFORM_LABEL: Record<ContentPlatform, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+  blog: "Blog",
+  email: "Email",
 };
+
+/** Platforms with a publishing integration (blog and email are written here, then exported). */
+export const SOCIAL_PLATFORMS: Platform[] = ["instagram", "facebook", "tiktok"];
+export const isSocial = (p: ContentPlatform): p is Platform =>
+  (SOCIAL_PLATFORMS as string[]).includes(p);
 
 export const FORMAT_LABEL: Record<ContentFormat, string> = {
   post: "Post",
@@ -14,18 +26,33 @@ export const FORMAT_LABEL: Record<ContentFormat, string> = {
   reel: "Reel",
   story: "Story",
   short_video: "Short video",
+  article: "Article",
+  newsletter: "Newsletter",
 };
 
 /** Mirrors backend apps/content/platform_rules.py (server remains authoritative). */
-export const PLATFORM_FORMATS: Record<Platform, ContentFormat[]> = {
+export const PLATFORM_FORMATS: Record<ContentPlatform, ContentFormat[]> = {
   instagram: ["post", "carousel", "reel", "story"],
   facebook: ["post", "carousel", "reel", "story"],
   tiktok: ["short_video", "carousel"],
+  blog: ["article"],
+  email: ["newsletter"],
 };
-export const CAPTION_LIMIT: Record<Platform, number> = {
+export const CAPTION_LIMIT: Record<ContentPlatform, number> = {
   instagram: 2200,
   facebook: 63206,
   tiktok: 2200,
+  blog: 100000,
+  email: 50000,
+};
+
+/** Mirrors backend documents.DOCUMENT_KIND_FOR_FORMAT. */
+export const DOCUMENT_KIND: Partial<Record<ContentFormat, DocumentKind>> = {
+  post: "design",
+  story: "design",
+  carousel: "carousel",
+  reel: "video",
+  short_video: "video",
 };
 
 export const STATUS_META: Record<ContentStatus, { label: string; tone: BadgeTone }> = {
@@ -47,7 +74,7 @@ export function PlatformBadge({
   platform,
   format,
 }: {
-  platform: Platform;
+  platform: ContentPlatform;
   format?: ContentFormat;
 }) {
   return (

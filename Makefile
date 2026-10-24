@@ -33,6 +33,10 @@ down: ## Stop all Docker services (data volumes are kept)
 
 # --- Running natively (after `make deps`) -------------------------------------
 
+.PHONY: dev
+dev: ## Run the whole project natively in one terminal (db, migrations, API, worker, beat, web)
+	./scripts/dev.sh
+
 .PHONY: backend
 backend: ## Run the Django dev server on :8000
 	$(BACKEND) uv run python manage.py runserver 8000
@@ -52,6 +56,10 @@ frontend: ## Run the Next.js dev server on :3000
 .PHONY: migrate
 migrate: ## Apply database migrations
 	$(BACKEND) uv run python manage.py migrate
+
+.PHONY: seed
+seed: ## Create demo users (one per role) and an onboarded demo organization
+	$(BACKEND) uv run python manage.py seed_demo
 
 .PHONY: migrations
 migrations: ## Create migrations for model changes

@@ -10,6 +10,7 @@
 | Node.js | 22 LTS | Frontend; `engines` requires `>=22` |
 | npm | 10+ | Lockfile: `frontend/package-lock.json` |
 | GNU Make | any | Optional convenience wrapper |
+| ffmpeg + ffprobe | 4.3+ | Content studio: validates video/audio uploads and renders videos (worker). Without it, video features report "unavailable". `apt install ffmpeg fonts-dejavu-core` |
 
 ## Configuration
 
@@ -44,6 +45,16 @@ Fastest feedback loop; debuggers and hot reload work normally.
 
 ```bash
 make setup        # uv sync + npm ci (+ creates .env)
+make dev          # everything below, in one terminal (Ctrl+C stops all)
+```
+
+`make dev` (`scripts/dev.sh`) starts PostgreSQL and Redis, applies migrations, and runs the
+API, worker, beat and frontend with labelled output. If any process exits, it stops the
+rest. PostgreSQL and Redis keep running until `make down`.
+
+Or run each process in its own terminal:
+
+```bash
 make deps         # docker compose up -d --wait postgres redis
 make migrate
 make backend      # terminal 1: http://localhost:8000
@@ -139,5 +150,17 @@ secret injection, migrations-on-deploy strategy, object storage, static file ser
 ## Background worker notes
 
 Celery workers do **not** auto-reload. After changing backend code that runs in jobs
-(AI workflows, publishing), restart `make worker`. A worker running older code fails
+(AI workflows, publishing, video rendering), restart `make worker`. A worker running older code fails
 unknown jobs visibly (`workflow_unavailable`) rather than leaving them stuck.
+
+## Content studio notes
+
+- **Image generation** is off unless `IMAGE_PROVIDER` is set. Development defaults to
+  `mock` (labelled placeholder images); there is no real image vendor yet (ADR 0015).
+- **Video rendering** runs in the Celery worker with ffmpeg (`FFMPEG_BINARY`,
+  `FFPROBE_BINARY`, `VIDEO_FONT_FILE`, `VIDEO_RENDER_TIMEOUT_SECONDS`).
+- **Uploads** of video/audio are limited by `MAX_MEDIA_UPLOAD_BYTES` (100 MB) and
+  `MAX_MEDIA_DURATION_SECONDS`. Keep the frontend's `MAX_PROXY_BODY_SIZE` (default
+  `105mb`) above the upload limit, or proxied uploads are silently truncated.
+- **S3**: allow `GET` from the app origin in the bucket's CORS rules, so the design editor
+  can export images that load through signed URLs.

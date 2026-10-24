@@ -19,7 +19,7 @@ def url(org, path=""):
     return f"/api/v1/orgs/{org.id}/{path}"
 
 
-def connect_mock(client, org, platform="facebook"):
+def connect_mock(client, org, platform="instagram"):
     start = client.post(
         url(org, "social/accounts/connect/"),
         {"platform": platform, "simulation": True},
@@ -68,7 +68,7 @@ def test_simulated_connection_stores_encrypted_tokens(org_client):
     assert not any("token" in k and "expires" not in k for k in account)  # no token fields exposed
     stored = SocialAccount.objects.get(pk=account["id"])
     assert stored.access_token_enc and "mock-token" not in stored.access_token_enc
-    assert stored.access_token == "mock-token-facebook"
+    assert stored.access_token == "mock-token-instagram"
 
 
 def test_oauth_state_is_single_use_user_bound_and_expires(org_client, make_user):
@@ -407,3 +407,35 @@ def test_rotate_social_tokens_command(org_client, settings):
     account.refresh_from_db()
     assert (account.access_token, account.refresh_token) == ("secret-access", "secret-refresh")
     crypto.reset_cache()
+
+
+def test_instagram_login_still_works_through_the_shared_meta_client():
+    """Regression: Instagram reuses the Facebook adapter's Meta app settings and client."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("oauth/access_token"):
+            return httpx.Response(200, json={"access_token": "user-token", "expires_in": 5000})
+        assert "appsecret_proof" in request.url.params  # signed like every Meta call
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "id": "p1",
+                        "name": "Cafe",
+                        "access_token": "page-token",
+                        "instagram_business_account": {"id": "ig1", "username": "cafe"},
+                    }
+                ]
+            },
+        )
+
+    adapter = ig(handler)
+    auth = urlparse(
+        adapter.authorization_url(state="s", redirect_uri="https://app/cb", code_challenge="c")
+    )
+    assert auth.path == "/v26.0/dialog/oauth"
+    accounts = adapter.complete_authorization(
+        code="c", redirect_uri="https://app/cb", code_verifier="v"
+    )
+    assert [(a.external_id, a.access_token) for a in accounts] == [("ig1", "page-token")]

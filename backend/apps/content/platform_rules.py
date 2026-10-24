@@ -43,7 +43,36 @@ RULES: dict[str, PlatformRules] = {
         media_required_formats=frozenset({"short_video", "carousel"}),
         video_formats=frozenset({"short_video"}),
     ),
+    # No publishing integration: written and approved here, then exported.
+    # For these, ``caption`` is the article/email body and ``headline`` the title/subject.
+    "blog": PlatformRules(
+        caption_max_chars=100_000,
+        max_hashtags=0,
+        formats=frozenset({"article"}),
+        media_required_formats=frozenset(),
+        video_formats=frozenset(),
+    ),
+    "email": PlatformRules(
+        caption_max_chars=50_000,
+        max_hashtags=0,
+        formats=frozenset({"newsletter"}),
+        media_required_formats=frozenset(),
+        video_formats=frozenset(),
+    ),
 }
+
+#: Platforms that publish through a social integration (the others are export-only).
+SOCIAL_PLATFORMS = frozenset({"instagram", "facebook", "tiktok"})
+
+
+@dataclass(frozen=True)
+class RenderState:
+    """How the item's rendered media relates to its editable document."""
+
+    has_document: bool = False
+    missing: int = 0  # pages (or the video) with no render
+    stale: int = 0  # renders made from an older state of the document
+    pages: int = 0  # pages in a visual document (carousel slides)
 
 
 def issue(code: str, severity: str, message: str) -> dict[str, str]:
@@ -57,6 +86,7 @@ def check_version(
     fields: dict[str, Any],
     media_count: int,
     restricted_claims: list[str],
+    render: RenderState | None = None,
 ) -> list[dict[str, str]]:
     rules = RULES[platform]
     issues: list[dict[str, str]] = []
@@ -69,7 +99,16 @@ def check_version(
             issue("format_unsupported", "error", f"{format} is not supported on {platform}.")
         )
     if not caption:
-        issues.append(issue("caption_missing", "error", "Add a caption."))
+        long_form = platform in {"blog", "email"}
+        issues.append(
+            issue(
+                "caption_missing", "error", "Add the body text." if long_form else "Add a caption."
+            )
+        )
+    if platform == "email" and not (fields.get("headline") or "").strip():
+        issues.append(issue("subject_missing", "error", "Add a subject line (headline)."))
+    if platform == "blog" and not (fields.get("headline") or "").strip():
+        issues.append(issue("title_missing", "warning", "Add an article title (headline)."))
     full_length = len(caption) + sum(len(h) + 2 for h in hashtags)
     if full_length > rules.caption_max_chars:
         issues.append(
@@ -82,15 +121,44 @@ def check_version(
         )
     if len(hashtags) > rules.max_hashtags:
         issues.append(
-            issue("too_many_hashtags", "error", f"Use at most {rules.max_hashtags} hashtags.")
+            issue(
+                "too_many_hashtags",
+                "error",
+                f"Use at most {rules.max_hashtags} hashtags."
+                if rules.max_hashtags
+                else f"{platform.title()} content doesn't use hashtags.",
+            )
         )
-    if format == "carousel" and len(slides) < 2 and media_count < 2:
+    if render and render.has_document:
+        if render.stale:
+            issues.append(
+                issue(
+                    "render_stale",
+                    "error",
+                    "The design changed after it was last exported. Export it again so the "
+                    "published media matches.",
+                )
+            )
+        elif render.missing:
+            issues.append(
+                issue(
+                    "render_missing",
+                    "error",
+                    "Export the design (or render the video) to create the media to publish.",
+                )
+            )
+    designed_pages = render.pages if render else 0
+    if format == "carousel" and max(len(slides), media_count, designed_pages) < 2:
         issues.append(
             issue("carousel_needs_slides", "error", "A carousel needs at least 2 slides or images.")
         )
     if format in rules.video_formats and not (fields.get("script") or "").strip():
         issues.append(issue("script_missing", "warning", "Add a short script for this video."))
-    if format in rules.media_required_formats and media_count == 0:
+    if (
+        format in rules.media_required_formats
+        and media_count == 0
+        and not (render and render.has_document)
+    ):
         issues.append(
             issue(
                 "media_required",
