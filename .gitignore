@@ -37,3 +37,6 @@ frontend/next-env.d.ts
 
 # Celery beat state
 celerybeat-schedule*
+
+# Local design reference material (third-party images; not part of the product)
+external/
